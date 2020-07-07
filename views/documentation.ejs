@@ -59,19 +59,19 @@
             </ul>
             <h4>Endpoints</h4>
             <ul>
-                <li>User register<strong> - /register/user or /register/customer</strong></li>
+                <li>User register<strong> - /register/user or /register/customer</strong></li>
                 <h6>Body: </h6>
                 <ul  class="alert alert-primary">
                     <li>phone_number</li>
                     <li>password</li>
                 </ul>
-                <li>User login<strong> - /login/user</strong></li>
+                <li>User login<strong> - /login/user</strong></li>
                 <h6>Body: </h6>
                 <ul  class='alert alert-primary'>
                     <li>phone_number</li>
                     <li>password</li>
                 </ul>
-                 <li>User update<strong> - /store-admin/update</strong></li>
+                 <li>User update<strong> - /store-admin/update</strong></li>
                 <h6>Body: </h6>
                 <ul  class='alert alert-primary'>
                   <li>first_name</li>
@@ -82,12 +82,12 @@
                 
 
                 <!-- FACEBOOK LOGIN -->
-                <li>Facebook login<strong> - /login/fb_login [GET]</strong></li>
+                <li>Facebook login<strong> - /login/fb_login [GET]</strong></li>
 
                 <ul>
                     <h5 class="mt-2">Account Activation</h5>
                     <p>Also, a user is required to verify his/her phone number after registration in order to activate his/her account.</p>
-                    <li>Send SMS(OTP)<strong> - /otp/send [POST]</strong></li>
+                    <li>Send SMS(OTP)<strong> - /otp/send [POST]</strong></li>
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
                         <li>phone_number</li>
@@ -117,7 +117,7 @@
             <hr>
             <h4>Endpoints</h4>
             <ul>
-                <li>Create assistant<strong>- /assistant/new [POST]</strong>
+                <li>Create assistant<strong>- /assistant/new [POST]</strong>
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
                         <li>phone_number</li>
@@ -125,7 +125,7 @@
                     </ul>
                 </li>
                 <li>Retrieve all users<strong>- /assistant [GET]</strong></li>
-                <li>Retrieve user<strong> - /assistant/:assistant_id [GET]</strong>
+                <li>Retrieve user<strong> - /assistant/:assistant_id [GET]</strong>
                     <h6>Params</h6>
                     <ul class="alert alert-primary">
                         <li>customer_id</li>
@@ -249,7 +249,7 @@
             <hr>
             <h4>Endpoints</h4>
             <ul>
-                <li>Add new transaction<strong>- /transaction/new</strong>
+                <li>Add new transaction<strong>- /transaction/new</strong>
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
                         <li>amount</li>
@@ -262,7 +262,7 @@
                         <li>phone_number</li>
                     </ul>
                 </li>
-                <li>View all transactions<strong> - /transaction/all</strong></li>
+                <li>View all transactions<strong> - /transaction/all</strong></li>
                 <li>view a single transaction<strong> - /transaction/:transaction_id [UPDATE]</strong>
                    
                     <h6>Body: </h6>
@@ -270,7 +270,7 @@
                         <li>transaction id </li>
                     </ul>
                 </li>
-                <li>Update transaction<strong> - /transaction/update/:transaction_id</strong>
+                <li>Update transaction<strong> - /transaction/update/:transaction_id</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
                         <li>store_name</li>
@@ -280,7 +280,7 @@
                         <li>Entries to update</li>
                     </ul>
                 </li>
-                <li>Delete transaction (logical delete)<strong>- /transaction/delete/:transaction_id</strong></li>
+                <li>Delete transaction (logical delete)<strong>- /transaction/delete/:transaction_id</strong></li>
             </ul>
         </div>
         <div class="customer" id="customer">
@@ -326,7 +326,7 @@
             <p>Notify a customer of outstanding payments or even send them a season's greeting. <br>This can e done via <strong>Email</strong> or <strong>SMS</strong></p>
             <h4>Endpoints</h4>
             <ul>
-                <li>Send SMS reminder<strong> - /reminder/sms/:customer_id [POST]</strong>
+                <li>Send SMS reminder<strong> - /reminder/sms/:customer_id [POST]</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
                         <li>customer_id</li>
@@ -336,7 +336,7 @@
                         <li>message</li>
                     </ul>
                 </li>
-                <li>Send Email reminder <strong> - /reminder/email/:customer_id [POST]</strong>
+                <li>Send Email reminder <strong> - /reminder/email/:customer_id [POST]</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
                         <li>customer_id</li>
@@ -346,6 +346,27 @@
                         <li>subject</li>
                         <li>text</li>
                         <li>store_id</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <div class="recover" id="recover">
+            <h1 class="">Password Recovery</h1>
+            <hr>
+            <p>Notify a customer of outstanding payments or even send them a season's greeting. <br>This can e done via <strong>Email</strong> or <strong>SMS</strong></p>
+            <h4>Endpoints</h4>
+            <ul>
+                <li>Recover<strong> - /recover [POST]</strong>
+                    <h6>Body: </h6>
+                    <ul class="alert alert-primary">
+                        <li>phone_number</li>
+                    </ul>
+                </li>
+                <li>Reset <strong> - /reset [POST]</strong>
+                    <h6>Body: </h6>
+                    <ul class="alert alert-primary">
+                        <li>token</li>
+                        <li>password</li>
                     </ul>
                 </li>
             </ul>
