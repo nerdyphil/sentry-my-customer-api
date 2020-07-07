@@ -1,67 +1,83 @@
+const { body } = require('express-validator/check');
 const UserModel = require("../models/store_admin");
 const OTP = require("../models/otp");
 const africastalking = require("africastalking")({
   apiKey: process.env.AFRICASTALKING_API_KEY,
   username: process.env.AFRICASTALKING_USERNAME
 });
+const codeLength = 6;
+
+exports.validate = (method) => {
+  switch (method) {
+    case 'send': {
+      return [
+        body('phone_number').isNumeric(),
+      ]
+    }
+    case 'verify': {
+      return [
+        body('phone_number').isNumeric(),
+        body('verify').isNumeric().isLength({ min: codeLength, max: codeLength })
+      ]
+    }
+  }
+}
 
 exports.send = async (req, res) => {
-  const identifier = req.user.phone_number;
   try {
-    UserModel.findOne({ identifier })
-      .then(async user => {
-        console.log(user._id);
-        let otp = await OTP.findOne({ user_ref_code: user._id });
-        console.log(otp);
-        if (otp) {
-          otp.otp_code = makeid(6);
-        } else {
-          otp = new OTP({
-            otp_code: makeid(6),
-            user_ref_code: user._id
-          });
+    const user = await UserModel.findOne({ identifier: req.body.phone_number });
+
+    if(!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        data: {
+          statusCode: 404,
+          error: "User not found"
         }
-        console.log(otp);
-        otp.save().then(result => {
-          const sms = africastalking.SMS;
-          sms
-            .send({
-              to: [`+${user.local.phone_number}`],
-              message: `Your number verification to MyCustomer is ${result.otp_code}`
-            })
-            .then(response => {
-              console.log(response);
-              res.status(200).json({
-                success: true,
-                message: "successful",
-                data: {
-                  message: "successful"
-                }
-              });
-            })
-            .catch(error => {
-              console.log(error);
-              res.status(500).json({
-                success: false,
-                message: "Something went wrong.",
-                data: {
-                  statusCode: 500,
-                  error: "Something went wrong."
-                }
-              });
-            });
-        });
-      })
-      .catch(error => {
-        res.status(500).json({
-          status: false,
-          message: error.message,
-          error: {
-            code: 500,
-            message: error.message
-          }
-        });
       });
+    }
+
+    let otp = await OTP.findOne({ user_ref_code: user._id });
+
+    if (otp) {
+      otp.otp_code = makeid(codeLength);
+    } else {
+      otp = new OTP({
+        otp_code: makeid(codeLength),
+        user_ref_code: user._id
+      });
+    }
+
+    const otpSaveResult = await otp.save();
+
+    console.log("otpSaveResult", otpSaveResult)
+
+    if(!otpSaveResult) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong.",
+        data: {
+          statusCode: 500,
+          error: "Something went wrong."
+        }
+      });
+    }
+
+    const sms = africastalking.SMS;
+    await sms.send({
+      to: [`+${req.body.phone_number}`],
+      message: `Your number verification to MyCustomer is ${otpSaveResult.otp_code}`
+    })
+
+    res.status(200).json({
+      success: true,
+      message: "successful",
+      data: {
+        message: "successful"
+      }
+    });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -75,67 +91,43 @@ exports.send = async (req, res) => {
 };
 
 exports.verify = async (req, res) => {
-  const identifier = req.user.phone_number;
   try {
-    UserModel.findOne({ identifier })
-      .then(async user => {
-        let otp = await OTP.findOne({ _id: user._id });
-        if (otp) {
-          if (otp.otp_code == req.body.verify) {
-            console.log("valid");
-            user.local.is_active = 1;
-            user
-              .save()
-              .then(response => {
-                res.status(200).json({
-                  success: true,
-                  message: "successful",
-                  data: {
-                    message: "successful"
-                  }
-                });
-              })
-              .catch(error => {
-                res.status(500).json({
-                  status: false,
-                  message: error.message,
-                  error: {
-                    code: 500,
-                    message: error.message
-                  }
-                });
-              });
-          } else {
-            res.status(404).json({
-              status: false,
-              message: "OTP invalid",
-              error: {
-                code: 404,
-                message: "OTP invalid"
-              }
-            });
-          }
-        } else {
-          res.status(404).json({
-            status: false,
-            message: "OTP not found",
-            error: {
-              code: 404,
-              message: "OTP not found"
-            }
-          });
+    let user = await UserModel.findOne({ identifier: req.body.phone_number });
+
+    if(!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        data: {
+          statusCode: 404,
+          error: "User not found"
         }
-      })
-      .catch(error => {
-        res.status(500).json({
-          status: false,
-          message: error.message,
-          error: {
-            code: 500,
-            message: error.message
-          }
-        });
       });
+    }
+
+    const otp = await OTP.findOne({ user_ref_code: user._id });
+
+    if(!otp || otp.otp_code != req.body.verify) {
+      return res.status(404).json({
+        success: false,
+        message: "OTP not found",
+        data: {
+          statusCode: 404,
+          error: "OTP not found"
+        }
+      });
+    }
+
+    user.local.is_active = true;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "successful",
+      data: {
+        message: "successful"
+      }
+    });
   } catch (err) {
     res.status(500).json({
       success: false,
