@@ -15,7 +15,7 @@ exports.validate = method => {
     case "body": {
       return [
         body("phone_number").isInt(),
-        body("name").matches(/^[0-9a-zA-Z]{2,}$/, "i"),
+        body("name").matches(/^[0-9a-zA-Z ]{2,}$/, "i"),
       ];
     }
     case "store_admin": {
