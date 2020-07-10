@@ -88,11 +88,14 @@ exports.getAll = async (req,res)=>{
     UserModel.findOne({ identifier })
         .then(user => {
             let allDebts = [];
-            user.stores.forEach(store => {
+            user.stores.forEach((store, storeIndex) => {
+                // allDebts.push({ store_name: store.store_name, store_debts: [] });
                 store.customers.forEach(customer => {
                     customer.transactions.forEach(transaction => {
                         transaction.debts.forEach(debt => {
-                            allDebts.push(debt);
+                            let debtToSend = { debt_obj: debt, store_name: store.store_name }
+                            allDebts.push(debtToSend);
+                            // allDebts[storeIndex].store_debts.push(debt);
                         })
                     })
                 })

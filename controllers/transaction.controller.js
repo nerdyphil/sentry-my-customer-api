@@ -119,12 +119,11 @@ exports.findAll = async (req, res, next) => {
       });
 
       if (details.length == 0) {
-        res.status(404).json({
-          success: false,
+        res.status(200).json({
+          success: true,
           message: "No transaction associated with this user account",
-          error: {
-            code: 404,
-            message: "No transaction associated with this user account",
+          data: {
+            transactions: details,
           },
         });
       } else {
