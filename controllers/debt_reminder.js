@@ -1,5 +1,6 @@
 
 const UserModel = require('../models/store_admin')
+const { body } = require("express-validator/check");
 const Debt = require("../models/debt_reminders");
 const Response = require('../util/response_manager')
 const HttpStatus = require('../util/http_status')
@@ -7,19 +8,36 @@ const mongoose = require('mongoose')
 const Transaction = require("../models/transaction");
 const { all } = require('../routes/customer');
 
+exports.validate = (method) => {
+    switch (method) {
+      case 'body': {
+        return [
+          body('store_name').isString(),
+          body('customer_phone_number').isLength({ min: 3 }),
+          body('message').isLength({ min: 3 }),
+          body('status').isLength({ min: 3 }),
+          body('pay_date').isLength({ min: 3 }),
+          body('transaction_id').optional(),
+          body('name').isString(),
+          body('amount').isLength({ min: 3 })
+        ]
+      }
+    }
+}
+
 exports.create = async (req,res)=>{
     // Add new message
     let transaction_id = req.body.transaction_id || req.params.transaction_id;
     let identifier = req.user.phone_number;
-    const { store_name, customer_phone_number , message, status, pay_date, amount} = req.body;
+    const { store_name, customer_phone_number , message, status, pay_date, amount, name} = req.body;
 
-    if(!customer_phone_number || !message || !status || !pay_date || !amount){
+    if(!transaction_id){
         res.status(500).json({
             sucess: false,
             message: "Missing fields",
             error: {
               statusCode: 500,
-              message: "customer_phone_number, store_name, pay_date, amount, message and status are required"
+              message: "transaction_id is required"
             }
           })
     }
@@ -41,6 +59,7 @@ exports.create = async (req,res)=>{
                     message: message,
                     status: status,
                     expected_pay_date: new Date(pay_date),
+                    name: name
                 }
                 
                 transaction.debts.push(newDebt);
@@ -172,7 +191,7 @@ exports.getById = async (req,res)=>{
 
 exports.updateById = async (req, res) => {
     let identifier = req.user.phone_number;
-    let { status, message, amount, pay_date } = req.body;
+    let { status, message, amount, pay_date, name } = req.body;
 
     try {
         UserModel.findOne({ identifier })
@@ -190,6 +209,7 @@ exports.updateById = async (req, res) => {
             
             let debtById = allDebts.find(debt => debt._id == req.params.debtId);
             let update = {
+                name: name || debtById.name,
                 amount: amount || debtById.amount,
                 message: message || debtById.message,
                 status: status || debtById.status,
@@ -304,4 +324,3 @@ exports.deleteById = async (req, res) => {
     }
     
 };
-
