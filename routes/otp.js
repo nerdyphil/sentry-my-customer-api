@@ -12,7 +12,7 @@ router.post(
 );
 router.post(
   "/otp/verify",
-  
+
   otpController.validate("verify"),
   bodyValidator,
   otpController.verify

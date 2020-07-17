@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const bCrypt = require("bcryptjs");
-const { body } = require('express-validator/check');
+const { body } = require("express-validator/check");
 
 const UserModel = require("../models/store_admin");
 const CustomerModel = require("../models/customer");
@@ -24,7 +24,7 @@ module.exports.loginUser = async (req, res, next) => {
   user.identifier = phone_number;
 
   //  Check if the users phone persists in the DB
-  await UserModel.findOne({ identifier: user.identifier })
+  await UserModel.findOne({ identifier: phone_number })
     .then((userExist) => {
       if (userExist) {
         //  Go ahead to compare the password match.
@@ -37,6 +37,7 @@ module.exports.loginUser = async (req, res, next) => {
                 {
                   phone_number: userExist.identifier,
                   password: user.local.password,
+                  user_role: userExist.user_role,
                 },
                 process.env.JWT_KEY,
                 {
@@ -53,8 +54,7 @@ module.exports.loginUser = async (req, res, next) => {
                   user: userExist,
                 },
               });
-            } 
-            else {
+            } else {
               res.status(401).json({
                 success: false,
                 message: "Invalid Password.",
@@ -76,12 +76,12 @@ module.exports.loginUser = async (req, res, next) => {
             });
           });
       } else {
-        res.status(401).json({
+        res.status(404).json({
           success: false,
-          message: "Invalid phone number.",
+          message: "User does not exist",
           error: {
-            code: 401,
-            description: "Invalid phone number.",
+            code: 404,
+            description: "User does not exist",
           },
         });
       }
@@ -96,6 +96,79 @@ module.exports.loginUser = async (req, res, next) => {
         },
       });
     });
+};
+
+module.exports.loginAssistant = async (req, res, next) => {
+  const { password, phone_number } = req.body;
+
+  //console.log(password, phone_number);
+  await UserModel.findOne({
+    "assistants.phone_number": phone_number
+  })
+    .then((user) => {
+      const storeAssistants = user.assistants;
+
+      storeAssistants.forEach(storeAssistant => {
+        if (storeAssistant.phone_number == phone_number) {
+          bCrypt
+            .compare(password, storeAssistant.password)
+            .then(doPasswordMatch => {
+              if (doPasswordMatch) {
+                const apiToken = jwt.sign(
+                  {
+                    phone_number: phone_number,
+                    password: password,
+                    user_role: storeAssistant.user_role
+                  },
+                  process.env.JWT_KEY,
+                  {
+                    expiresIn: "1h"
+                  }
+                );
+                storeAssistant.api_token = apiToken;
+                user.save();
+                res.status(200).json({
+                  success: true,
+                  message: "You're logged in successfully.",
+                  data: {
+                    statusCode: 200,
+                    message: "Store Assistant retrieved successfully.",
+                    user: storeAssistant
+                  }
+                });
+              } else {
+                res.status(401).json({
+                  success: false,
+                  message: "Invalid Password.",
+                  error: {
+                    code: 401,
+                    description: "Invalid Password"
+                  }
+                });
+              }
+            });
+        }
+      });
+    })
+    .catch(error => {
+      return res.status(500).json({
+        success: "false",
+        message: "Internal Server Error.",
+        error: {
+          statusCode: 500,
+          message: "Internal Server Error."
+        }
+      });
+    });
+
+  return res.status(401).json({
+    success: false,
+    message: "Invalid Password.",
+    error: {
+      code: 401,
+      description: "Invalid Password"
+    }
+  });
 };
 
 //  Login Customer

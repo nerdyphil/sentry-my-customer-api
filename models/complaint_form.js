@@ -2,15 +2,27 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const ComplaintSchema = new mongoose.Schema({
+  storeOwner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'store_admin',
+  },
+  storeOwnerPhone: {
+    type: String,
+  },
   name: {
     type: String,
-    required: true,
+    // required: true,
     // Name of Complainer
   },
   email: {
     type: String,
-    required: true,
+    // required: true,
     // Email of complainer
+  },
+  subject: {
+    type: String,
+    required: true,
+    // Subject of Complaint
   },
   message: {
     type: String,
@@ -19,7 +31,8 @@ const ComplaintSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    default: 'Open'
+    enum: ["New", "Pending", "Resolved", "Closed"],
+    default: "New"
   },
   date: {
     type: Date,

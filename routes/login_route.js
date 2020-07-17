@@ -4,10 +4,13 @@ const bodyValidator = require('../util/body_validator')
 
 const router = express.Router();
 
-//User registration route
+//User login route
 router.post('/user', LoginController.validate('login'), bodyValidator, LoginController.loginUser);
 
-//Customer registration route
+//Customer login route
 router.post('/customer', LoginController.loginCustomer);
+
+//Assistant login route
+router.post('/assistant', LoginController.loginAssistant);
 
 module.exports = router;

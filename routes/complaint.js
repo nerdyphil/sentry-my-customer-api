@@ -4,31 +4,48 @@ const complaintsController = require("../controllers/complaints.controller");
 const auth = require("../auth/auth");
 const { check, validationResult } = require('express-validator/check');
 
-// Get all complaints
-router.get("/complaints/:ownerId", auth, complaintsController.findAll);
 
-// Get a single complaint
-router.get("/complaint/:ownerId/:complaintId", auth, complaintsController.findOne)
+// @route       GET /complaints
+// @desc        User gets all complaints
+// @access      Private
+router.get("/complaints", auth, complaintsController.findAll);
 
-// Update a complaint
-router.put("/complaint/update/:ownerId", complaintsController.update);
+// @route       GET /complaints/all
+// @desc        Super admin gets all complaints in the database
+// @access      Private
+router.get("/complaints/all", auth, complaintsController.getAllComplaintsInDB);
 
-// Create a new complaint
-// // create and register new complaint
-// @route       POST /complaint/new/:ownerId
-// @desc        Public creates complaints to store Owner admins
-// @access      Public
+// @route       GET /complaint/:complaintId
+// @desc        User gets single complaint
+// @access      Private
+router.get("/complaint/:complaintId", auth, complaintsController.findOne);
+
+// @route       PUT /complaint/update/:complaintId
+// @desc        Super Admin updates status of complaint
+// @access      Private
+router.put("/complaint/update/:complaintId", auth, complaintsController.update);
+
+
+// @route       POST /complaint/new
+// @desc        User (store owner) creates complaints for super admin to view
+// @access      Private
 router.post(
-    "/complaint/new/:ownerId", 
+    "/complaint/new", 
     [
-        check('name', 'Please add a name').not().isEmpty(),
-        check('email', 'Please add a valid email').isEmail(),
-        check('message', 'Please add a message of more that 10 characters').isLength({ min: 10 })
+        auth,
+        [
+            // check('name', 'Please add a name').not().isEmpty(),
+            // check('email', 'Please add a valid email').isEmail(),
+            check('subject', 'Please put in a subject').not().isEmpty(),
+            check('message', 'Please add a message of more that 10 characters').isLength({ min: 10 })
+        ]
     ],
     complaintsController.newComplaint
 );
 
-// Delete a complaint
-router.delete("/complaint/delete/:ownerId/:complaintId", auth, complaintsController.deleteOne);
+// @route       DELETE /complaint/delete/:complaintId
+// @desc        User (store owner) creates complaints for super admin to view
+// @access      Private
+router.delete("/complaint/delete/:complaintId", auth, complaintsController.deleteOne);
 
 module.exports = router;

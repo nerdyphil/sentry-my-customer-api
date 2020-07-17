@@ -1,5 +1,6 @@
 const mongoose = require("mongoose"),
-	  Customer = require("./customer");
+	  Customer = require("./customer"),
+	  Transaction = require("./transaction")
 
 
 const storeSchema = new mongoose.Schema({

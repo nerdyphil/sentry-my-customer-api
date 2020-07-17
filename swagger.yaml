@@ -773,11 +773,11 @@ paths:
                 type: "string"
         "401":
           description: "Invalid input"
-  /complaint/new/:ownerId:
+  /complaint/new:
     post:
       tags:
       - "Complaint"
-      summary: "Add a new complaint to the complaint"
+      summary: "User (store owner) creates complaints for super admin to view"
       description: ""
       operationId: "addComplaint"
       consumes:
@@ -793,7 +793,7 @@ paths:
           $ref: "#/definitions/Complaint"
       responses:
         "200":
-          description: "Successful operation"
+          description: "Complaint successfully created!"
           schema:
             $ref: "#/definitions/Complaint"
         "500":
@@ -802,7 +802,7 @@ paths:
     put:
       tags:
       - "Complaint"
-      summary: "Update an existing complaint"
+      summary: "Super Admin updates status of complaint"
       description: ""
       operationId: "updateComplaint"
       consumes:
@@ -824,20 +824,18 @@ paths:
           $ref: "#/definitions/Complaint"
       responses:
         "200":
-          description: "Successful operation"
+          description: "Complaint updated!"
           schema:
             $ref: "#/definitions/Complaint"
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "User not found"
-        "405":
-          description: "Validation exception"
+        "401":
+          description: "Unauthorised! Only Super Admin can Update Complaint!"
+        "422":
+          description: "Error updating complaint!"
   /complaint/delete/{complaintId}:
     delete:
       tags:
       - "Complaint"
-      summary: "Deletes a Complaint"
+      summary: "User (store owner) deletes complaints for super admin to view"
       description: ""
       operationId: "deleteComplaint"
       produces:
@@ -851,17 +849,17 @@ paths:
         format: "int64"
       responses:
         "200":
-          description: "Successful operation"
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Customer not found"
-  /complaints/:ownerId:
+          description: "Complaint successfully deleted"
+        "401":
+          description: "Unauthorised! Only Super Admin can Delete Complaint!"
+        "500":
+          description: "Error deleting complaint"
+  /complaints:
     get:
       tags:
       - "Complaint"
       summary: "List of complaints"
-      description: ""
+      description: "User gets single complaint"
       operationId: "getComplaint"
       produces:
       - "application/json"
@@ -872,10 +870,37 @@ paths:
            type: "array"
            items:
             $ref: "#/definitions/User"
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Complaints not found"
+        "200":
+          description: "All complaints"
+        "500":
+          description: "Error fetching complaints!"
+  /complaint/{complaintId}:
+    get:
+      tags:
+      - "Complaint"
+      summary: "List of complaints"
+      description: "User gets single complaint"
+      operationId: "getComplaint"
+      parameters:
+      - name: "complaintId"
+        in: "path"
+        description: "Complaint id to get"
+        required: true
+        type: "integer"
+        format: "int64"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "Successful operation"
+          schema:
+           type: "array"
+           items:
+            $ref: "#/definitions/User"
+        "200":
+          description: "All complaints"
+        "422":
+          description: "Error fetching complaints!"
   /debt:
     get:
       tags:

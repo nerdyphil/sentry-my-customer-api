@@ -26,6 +26,7 @@
                 <li class="item"><a href="#customer">Customer</a></li>
                 <li class="item"><a href="#complaint">Complaint</a></li>
                 <li class="item"><a href="#store">Store</a></li>
+                <li class="item"><a href="#dashboard">Dashboard</a></li>
                 <!-- <li class="item"><a href="#call">Call</a></li> -->
                 <li class="toggle"><a href="#"><i class="fas fa-bars"></i></a></li>
             </ul>
@@ -121,18 +122,59 @@
 
                  <h4>Update Password</h4>
             <ul>
-                <li>Update password<strong> - /update-password [POST]</strong>
+                <li>Update password<strong> - /store-admin/update/password [POST]</strong>
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
-                        <li>oldPassword</li>
-                          <li>newPassword</li>
-                            <li>confirmPassword</li>
+                        <li>old_password</li>
+                        <li>new_password</li>
+                        <li>confirm_password</li>
                     </ul>
+                    <strong>Note: confirm_password should be equal to new_password. Make sure this is implemented client-side also</strong>
                 </li>
 
             </ul>
         </div>
                 </ul>
+            </ul>
+        </div>
+        <div class="store-admin" id="store-admin">
+            <h1 class="">Store Admin</h1>
+            <hr>
+            <h4>Endpoints</h4>
+            <ul>
+                <li>Super Admin Get's all Store Admins <strong> - /users/all [GET]</strong>
+                    
+                </li>
+
+                <li>Super Admin Deactivate's Store Admin <strong> - /store-admin/deactivate/:phone_number [PATCH]</strong>
+                    
+                </li>
+
+                <li>Super Admin Activate's Store Admin <strong> - /store-admin/activate/:phone_number [PATCH]</strong>
+                    
+                </li>
+                
+            </ul>
+            <ul>
+                <li>Update Store Admin <strong>- /store-admin/update [PUT]</strong></li>
+                <h6>Body: </h6>
+                <ul class="alert alert-primary">
+                    <li>phone_number</li>
+                    <li>first_name</li>
+                    <li>last_name</li>
+                    <li>email</li>
+                </ul>
+                <strong>Note: If phone_number is updated, a new authentication token would be sent to the user. This should be saved</strong>
+            </ul>
+            <ul>
+                <li>Update Password <strong>- /store-admin/update/password [POST]</strong></li>
+                <h6>Body: </h6>
+                <ul class="alert alert-primary">
+                    <li>old_password</li>
+                    <li>new_password</li>
+                    <li>confirm_password</li>
+                </ul>
+                <strong>Note: confirm_password should be equal to new_password. Make sure this is implemented client-side also</strong>
             </ul>
         </div>
         <div class="user" id="user">
@@ -213,53 +255,63 @@
             <hr>
             <h4>Endpoints</h4>
             <ul>
-                <li>Register new complaint<strong>- /complaint/new/:ownerId [POST]</strong>
-                    <h6>Params: </h6>
+                <li>Store Owner creates new complaints for Super Admin <strong>- /complaint/new [POST]</strong>
+                    <h6>Body: </h6>
+                    <ul class="alert alert-primary">
+                        <li>name: set to who logs in</li>
+                        <li>email: set to who logs in</li>
+                        <li>Subject [REQUIRED]</li>
+                        <li>message [REQUIRED]</li>
+                    </ul>
+
+                    <h6>Default status: </h6>
+                    <ul class="alert alert-primary">
+                        <li> New </li>
+                    </ul>
+                </li>
+                <li>Store owner gets all complaints<strong> - /complaints [GET]</strong>
+                    <!-- <h6>Params: </h6>
                     <ul class="alert alert-primary">
                         <li>ownerId- Store Owner's (Business Owner) id </li>
+                    </ul> -->
+                </li>
+                <li>Super Admin gets all complaints in the Database<strong> - /complaints/all [GET]</strong>
+                    <!-- <h6>Params: </h6>
+                    <ul class="alert alert-primary">
+                        <li>ownerId- Store Owner's (Business Owner) id </li>
+                    </ul> -->
+                </li>
+
+                <li>Store Owner gets single complaint by ID<strong> - /complaint/:complaintId [GET]</strong>
+                    <!-- <h6>Params: </h6>
+                    <ul class="alert alert-primary">
+                        <li>ownerId- Store Owner's (Business Owner) id </li>
+                        <li>complaint_id</li>
+                    </ul> -->
+                </li>
+
+                <li>Super Admin Updates Complaint Status <strong> - /complaint/update/:complaintId [PUT] </strong>
+                    <h6>Params: </h6>
+                    <ul class="alert alert-primary">
+                        <li> complaintId - ID of the complaint that Super Admin wants to change status for </li>
                     </ul>
 
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
-                        <li>name</li>
-                        <li>email</li>
-                        <li>message</li>
+                        <li>status</li>
+                    </ul>
+                    
+                    <h6>List of Status Enumeration: </h6>
+                    <ul class="alert alert-primary">
+                        <li>New</li>
+                        <li>Investigating</li>
+                        <li>Resolved</li>
                     </ul>
                 </li>
-                <li>Retrieve all complaints<strong> - /complaints/:ownerId [GET]</strong>
+                <li>Delete a complaint form<strong> - /complaint/delete/:complaintId [DETETE]</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
-                        <li>ownerId- Store Owner's (Business Owner) id </li>
-                    </ul>
-                </li>
-
-                <li>Retrieve a single complaint<strong> - /complaint/:ownerId/:complaintId [GET]</strong>
-                    <h6>Params: </h6>
-                    <ul class="alert alert-primary">
-                        <li>ownerId- Store Owner's (Business Owner) id </li>
-                        <li>complaint_id</li>
-                    </ul>
-                </li>
-
-                <li>Update complaint<strong> - /complaint/update/:ownerId [PUT]</strong>
-                    <h6>Params: </h6>
-                    <ul class="alert alert-primary">
-                        <li>ownerId- Store Owner's (Business Owner) id </li>
-                    </ul>
-
-                    <h6>Body: </h6>
-                    <ul class="alert alert-primary">
-                        <li>complaint_id</li>
-                        <li>name</li>
-                        <li>email</li>
-                        <li>message</li>
-                    </ul>
-                </li>
-                <li>Delete a complaint form<strong> - /complaint/delete/:ownerId/:complaintId [DETETE]</strong>
-                    <h6>Params: </h6>
-                    <ul class="alert alert-primary">
-                        <li>ownerId- Store Owner's (Business Owner) id </li>
-                        <li>complaint_id</li>
+                        <li>complaintId</li>
                     </ul>
                 </li>
             </ul>
@@ -312,12 +364,13 @@
                     <ul class="alert alert-primary">
                         <li>name</li>
                         <li>phone_number</li>
-                        <li>store_name</li>
+                        <li>store_id</li>
                     </ul>
                 </li>
-                <li>Retrieve customer<strong> - /customer/:customer_id [POST]</strong>
+                <li>Retrieve customer<strong> - /customer/:store_id/:customer_id [POST]</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
+                        <li>store_id</li>
                         <li>customer_id</li>
                     </ul>
                 </li>
@@ -328,7 +381,10 @@
                     </ul>
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
-                        <li>Entries to update</li>
+                        <li>store_id</li>
+                        <li>name (optional)</li>
+                        <li>email (optional)</li>
+                        <li>phone_number (optional)</li>
                     </ul>
                 </li>
                 <li>Delete customer (logical delete)<strong> - /customer/delete/:customer_id [DELETE]</strong>
@@ -348,7 +404,7 @@
             <hr>
             <h4>Endpoints</h4>
             <ul>
-                <li>Create Debt<strong> - /debt/new [POST]</strong>
+                <!-- <li>Create Debt<strong> - /debt/new [POST]</strong>
                     <h6>Body: </h6>
                     <ul class="alert alert-primary">
                         <li>transaction_id</li>
@@ -359,30 +415,47 @@
                         <li>message</li>
                         <li>pay_date</li>
                     </ul>
-                </li>
+                </li> -->
                 <li>Retrieve debts<strong> - /debt/:debt_id [POST]</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
-                        <li>customer_id</li>
+                        <li>transaction_id</li>
                     </ul>
                 </li>
-                <li>Update debt details<strong> - /debt/update/:debt_id [PUT] </strong>
+                <li>Mark As paid<strong> - /debt/update/:debt_id [PUT] </strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
-                        <li>debt_id</li>
+                        <li>transaction_id/li>
                     </ul>
-                    <h6>Body: </h6>
+                    <!-- <h6>Body: </h6>
                     <ul class="alert alert-primary">
                         <li>Entries to update</li>
-                    </ul>
+                    </ul> -->
                 </li>
-                <li>Delete debt (logical delete)<strong> - /debt/delete/:debt_id [DELETE]</strong>
+                <!-- <li>Delete debt (logical delete)<strong> - /debt/delete/:debt_id [DELETE]</strong>
                     <h6>Params: </h6>
                     <ul class="alert alert-primary">
                         <li>debt_id</li>
                     </ul>
-                </li>
+                </li> -->
                 <li>View all debts<strong> - /debt/ [GET]</strong>
+                <li>Send Reminder (single)<strong> - /debt/send [POST]</strong>
+                    <h6><strong>Note: A valid customer phone number must be used when creating a customer and should follow international standards ie(+23490XXXXXXX)</strong></h6>
+                    <h6>Body: </h6>
+                    <ul class="alert alert-primary">
+                        <li>transaction_id</li>
+                        <li>message (optional)</li>
+                    </ul>
+                </li>
+                <li>Schedule Reminder (All debts)<strong> - /debt/schedule [POST]</strong>
+                    <h6><strong>Note: A valid customer phone number must be used when creating a customer and should follow international standards ie(+23490XXXXXXX)</strong></h6>
+                    <h6>Body: </h6>
+                    <ul class="alert alert-primary">
+                        <li>transaction_id</li>
+                        <li>time  (Format: (hr/mm) 24hr format)</li>
+                        <li>scheduleDate  (Format: (dd/mm/yyyy))</li>
+                    </ul>
+                </li>
                     
                 </li>
                 
@@ -391,7 +464,7 @@
         <div class="notification" id="notification">
             <h1 class="">Notification</h1>
             <hr>
-            <p>Notify a customer of outstanding payments or even send them a season's greeting. <br>This can e done via <strong>Email</strong> or <strong>SMS</strong></p>
+            <p>Notify a customer of outstanding payments or even send them a season's greeting. <br>This can be done via <strong>Email</strong> or <strong>SMS</strong></p>
             <h4>Endpoints</h4>
             <ul>
                 <li>Send SMS reminder<strong> - /reminder/sms/:customer_id [POST]</strong>
@@ -416,6 +489,33 @@
                         <li>store_id</li>
                     </ul>
                 </li>
+            </ul>
+        </div>
+        <div class="dashboard" id="dashboard">
+            <h1 class="">Dashboard</h1>
+            <hr>
+            <p>Get the overview of a users data e.g number of stores</p>
+            <h4>Endpoints</h4>
+            <ul>
+                <li>Store Admin dashboard<strong> - /dashboard [GET]</strong>
+                    
+                </li>
+                <li>Super Admin dashboard<strong> - /dashboard/all [GET]</strong>
+                    
+                </li>
+                <li>Customer dashboard<strong> - /dashboard/customer [GET]</strong>
+                    
+                </li>
+            </ul>
+        </div>
+
+        <div class="business-cards" id="business-cards">
+            <h1>Business Cards</h1>
+            <hr>
+            <p>Get a business card for each of your stores with your contact embeded in them</p>
+            <h4>Endpoints</h4>
+            <ul>
+                <li>Get business cards <strong>/business-cards [GET]</strong></li>
             </ul>
         </div>
 

@@ -7,8 +7,8 @@ const auth = require("../auth/auth");
 router.use("/customer", auth);
 router.post("/customer/new", customerController.validate("body"), bodyValidator, customerController.create);
 router.get("/customer", customerController.getAll);
-router.put("/customer/update/:customerId", bodyValidator, customerController.updateById);
+router.put("/customer/update/:customerId", customerController.updateById);
 router.delete("/customer/delete/:customerId", customerController.deleteById);
-router.get("/customer/:customerId", customerController.getById);
+router.get("/customer/:storeId/:customerId", customerController.getById);
 
 module.exports = router;

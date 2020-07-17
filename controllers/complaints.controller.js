@@ -4,7 +4,7 @@ const Complaint = require("../models/complaint_form");
 const StoreOwner = require('../models/store_admin');
 const { check, validationResult } = require('express-validator/check');
 
-// @route       GET /complaints/:ownerId
+// @route       GET /complaints
 // @desc        Store admin retrieves all Complaints
 // @access      Private
 exports.findAll = async (req, res) => {
@@ -12,16 +12,15 @@ exports.findAll = async (req, res) => {
   // Finds all complaints pertaining to store owner
   try {
 
-    const store_admin_id = req.params.ownerId;
+    // const complaints = await Complaint.find({ storeOwner: req.params.ownerId });
+    const complaints = await Complaint.find({ storeOwnerPhone: req.user.phone_number });
   
-    const storeAdmin = await StoreOwner.findById(store_admin_id);
-
     res.status(200).send({
       success: true,
       message: "All complaints",
       data: {
         statusCode: 200,
-        complaints: storeAdmin.complaints
+        complaints
       }
     });
     
@@ -37,17 +36,17 @@ exports.findAll = async (req, res) => {
   }
 };
 
-// @route       GET /complaint/:ownerId
-// @desc        Retrieve a single complaint
+// @route       GET /complaint/:complaintId
+// @desc        Store Admin retrieves a single complaint
 // @access      Private
 exports.findOne = async (req, res) => {
 
   try {
-    const { ownerId, complaintId } = req.params;
+    const { complaintId } = req.params;
 
-    const storeAdmin = await StoreOwner.findById(ownerId);
+    // const storeAdmin = await StoreOwner.findById(ownerId);
 
-    const complaint = storeAdmin.complaints.id(complaintId);
+    const complaint = await Complaint.findById(complaintId);
 
     if (!complaint) {
       res.status(422).send({
@@ -81,29 +80,57 @@ exports.findOne = async (req, res) => {
   }
 }
 
-// @route       PUT /complaints/update/:ownerId
-// @desc        Update an existing complaint
+// @route       PUT /complaints/update/:complaintId
+// @desc        Super Admin updates status of complaints
 // @access      Public
 exports.update = async (req, res) => {
-  const { complaint_id, name, email, message } = req.body;
-  const store_admin_id = req.params.ownerId;
+  const { status } = req.body;
+  // const store_admin_id = req.params.ownerId;
+
+  // Build contact object
+  // Based on the fields submitted, check to see if submitted
+  const statusFields = {};
+  
+  if (status) statusFields.status = status;
 
   try {
-    const storeAdmin = await StoreOwner.findById(store_admin_id);
+    const { complaintId } = req.params;
 
-    const complaints  = storeAdmin.complaints;
+    // Super admin user role
+    const adminUser = await StoreOwner.find({ identifier: req.user.phone_number });
+    
+    // Complaint
+    let complaint = await Complaint.findById(complaintId);
 
-    const complaint = complaints.id(complaint_id);
+    // If complaint don't exist
+    if (!complaint) return res.status(404).json({
+      success: false,
+      message: "Complaint not found",
+    });
 
-    complaint.name = name ? name : complaint.name;
-    complaint.email = email ? email : complaint.email;
-    complaint.message = message ? message : complaint.message;
+    let userRole;
 
-    await storeAdmin.save();
+    adminUser.forEach(admin => {
+      userRole = admin.local.user_role;
+    })
+
+    // Ensure it's the Super Admin
+    if (userRole !== 'super_admin') {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorised! Only Super Admin can Update Complaint!",
+      });
+    }
+
+    // Update complaint status
+    complaint = await Complaint.findByIdAndUpdate(complaintId,
+      { $set: statusFields },
+      { new: true }
+    );
 
     res.status(200).send({
       success: true,
-      message: "Complaint updated",
+      message: "Complaint updated!",
       data: {
         statusCode: 200,
         complaint
@@ -122,31 +149,48 @@ exports.update = async (req, res) => {
   }
 };
 
-// create and register new complaint
+
 // @route       DELETE /complaint/delete/:ownerId
-// @desc        Delete one complaint
+// @desc        Super Admin deletes complaint
 // @access      Private
 exports.deleteOne = async (req, res) => {
   
   try {    
-    const { ownerId, complaintId } = req.params;
+    const { complaintId } = req.params;
 
-    const storeAdmin = await StoreOwner.findById(ownerId);
-
-    const complaints  = storeAdmin.complaints;
-
-    const complaint = complaints.id(complaintId);
+    // Super admin user role
+    const adminUser = await StoreOwner.find({ identifier: req.user.phone_number });
     
-    complaint.remove();
+    // Complaint
+    const complaint = await Complaint.findById(complaintId);
 
-    await storeAdmin.save();
+    // If complaint don't exist
+    if (!complaint) return res.status(404).json({
+      success: false,
+      message: "Complaint not found",
+    });
+
+    let userRole;
+
+    adminUser.forEach(admin => {
+      userRole = admin.local.user_role;
+    })
+
+    if (userRole !== 'super_admin') {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorised! Only Super Admin can Delete Complaint!",
+      });
+    }
+
+    await Complaint.findByIdAndRemove(complaint);
 
     res.status(200).send({
       success: true,
       message: "Complaint successfully deleted",
       data: {
         statusCode: 200, 
-        complaint
+        // complaint
       }
     });
 
@@ -175,32 +219,38 @@ exports.newComplaint = async (req, res) => {
   }
 
   // Deconstruct req body
-  const { name, email, message } = req.body
+  const { name, email, subject, message } = req.body
 
   try {
     // Get Store Owner Id from the URL Parameter
-    let urlStoreOwner = await StoreOwner.findById(req.params.ownerId);
+    let storeOwner = await StoreOwner.findOne({ identifier: req.user.phone_number });
+
+    // console.log(storeOwner.local);
+
+    // return;
+    // console.log(storeOwner);
 
     // If Id exists, create complaint
     let newComplaint = await Complaint({
-      name, 
-      email,
+      name: storeOwner.local.first_name.toString() + " " + storeOwner.local.last_name.toString(), 
+      email: storeOwner.local.email,
+      subject,
       message,
-      storeOwner: req.params.ownerId
-    })
+      storeOwner: storeOwner._id,
+      storeOwnerPhone: req.user.phone_number
+    });
 
-    urlStoreOwner.complaints.push(newComplaint);
+    // urlStoreOwner.complaints.push(newComplaint);
 
-    const complaint = await urlStoreOwner.save();
-
-    // let comp = null;
+    // const complaint = await urlStoreOwner.save();
+    const complaint = await newComplaint.save();
 
     res.json({
       success: true,
-      message: "Complaint successfully sent to store owner!",
+      message: "Complaint successfully created!",
       data: {
         statusCode: 200,
-        complaint: newComplaint
+        complaint
       }
     });
 
@@ -208,7 +258,7 @@ exports.newComplaint = async (req, res) => {
     console.error(err.message);
     res.status(500).send({
       success: false,
-      message: "Server Error. Store Owner Id doesn't exist!",
+      message: "Server Error!",
       data: {
         statusCode: 500,
         error: err.message
@@ -216,3 +266,53 @@ exports.newComplaint = async (req, res) => {
     });
   }
 };
+
+
+// @route       GET /complaint/new/:ownerId
+// @desc        Store Admin Gets all Complaints in DB
+// @access      Private
+exports.getAllComplaintsInDB = async (req, res) => {
+  try {
+    // User who logs in
+    const adminUser = await StoreOwner.find({ identifier: req.user.phone_number });
+    console.log(adminUser)
+    let userRole;
+
+    adminUser.forEach(admin => {
+      userRole = admin.local.user_role;
+    })
+
+    // Ensure it's the Super Admin
+    if (userRole !== 'super_admin') {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorised! Only Super Admin can get all Complaint!",
+      });
+    }
+
+    // All complaints
+    const complaints = await Complaint.find({ });
+
+    // If complaint don't exist
+    if (!complaints) return res.status(404).json({
+      success: false,
+      message: "Complaint not found",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "All complaints in the database!",
+      data: complaints
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: {
+        statusCode: 500,
+        message: err.message
+      }
+    });
+  }
+}
