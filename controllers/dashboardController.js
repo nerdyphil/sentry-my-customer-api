@@ -80,17 +80,14 @@ exports.storeAdminDashboard = async (req, res, next) => {
             obj.transaction = transaction;
             data.recentTransactions.push(obj);
 
-            if (transaction.debts.length != 0) {
-              const debts = transaction.debts;
-              debts.forEach(debt => {
-                //push in details of each debt
-                let obj = {}
-                obj.storeName = store.store_name;
-                obj.customerName = customer.name;
-                obj.debt = debt;
-                data.recentDebts.push(obj);
-              })
-              
+            if (transaction.type.toLowerCase() == "debt" &&
+            transaction.status == false) {
+              //push in details of each debt
+              let obj = {}
+              obj.storeName = store.store_name;
+              obj.customerName = customer.name;
+              obj.debt = transaction;
+              data.recentDebts.push(obj);
             }
 
           })
