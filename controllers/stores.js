@@ -13,13 +13,6 @@ exports.createStore = async (req, res, next) => {
     const storeOwner = await UserModel.findOne({ identifier: id });
     if (storeOwner) {
       storeOwner.stores.push(
-        //   {
-        //   store_name: req.body.store_name,
-        //   shop_address: req.body.shop_address,
-        //   tagline: req.body.tagline,
-        //   phone_number:req.body.phone_number,
-        //   email:req.body.email,
-        // }
         req.body
       );
       storeOwner
@@ -147,7 +140,7 @@ exports.getStore = async (req, res, next) => {
 
   UserModel.findOne({
     $or: [
-      { identifier: req.user.phone_number, user_role: req.user.user_role },
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
       {
         "assistants.phone_number": req.user.phone_number,
         "assistants.user_role": req.user.user_role
