@@ -22,7 +22,7 @@ module.exports.registerUser = async (req, res, next) => {
   const { password, phone_number, user_role } = req.body;
 
   //  Create a Token that will be passed as the "api_token"
-  const token = await jwt.sign(
+  const token = jwt.sign(
     {
       phone_number: phone_number,
       user_role: "store_admin",
@@ -34,12 +34,12 @@ module.exports.registerUser = async (req, res, next) => {
   );
 
   //  Get instance of the
-  const user = await new UserModel({});
+  const user = new UserModel({});
   user.local.phone_number = phone_number;
   user.local.password = password;
 
   // TO REGISTER A SUPER ADMIN, USER ROLE IS NEEDED AS A REQUEST
-  user.local.user_role = user_role;
+  user.local.user_role = user_role || "store_admin";
 
   user.api_token = token;
   user.identifier = phone_number;

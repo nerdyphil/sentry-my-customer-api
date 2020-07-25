@@ -82,7 +82,7 @@ exports.findOne = async (req, res) => {
 
 // @route       PUT /complaints/update/:complaintId
 // @desc        Super Admin updates status of complaints
-// @access      Public
+// @access      Private
 exports.update = async (req, res) => {
   const { status } = req.body;
   // const store_admin_id = req.params.ownerId;
@@ -150,7 +150,7 @@ exports.update = async (req, res) => {
 };
 
 
-// @route       DELETE /complaint/delete/:ownerId
+// @route       DELETE /complaint/delete/:complaintId
 // @desc        Super Admin deletes complaint
 // @access      Private
 exports.deleteOne = async (req, res) => {
@@ -207,9 +207,9 @@ exports.deleteOne = async (req, res) => {
 };
 
 // create and register new complaint
-// @route       POST /complaint/new/:ownerId
+// @route       POST /complaint/new/
 // @desc        Public creates complaints to store Owner admins
-// @access      Public
+// @access      Private
 exports.newComplaint = async (req, res) => {
 
   // Validate body request
@@ -268,8 +268,8 @@ exports.newComplaint = async (req, res) => {
 };
 
 
-// @route       GET /complaint/new/:ownerId
-// @desc        Store Admin Gets all Complaints in DB
+// @route       GET /complaints/all
+// @desc        Super Admin Gets all Complaints in DB
 // @access      Private
 exports.getAllComplaintsInDB = async (req, res) => {
   try {
@@ -305,6 +305,279 @@ exports.getAllComplaintsInDB = async (req, res) => {
       data: complaints
     });
 
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: {
+        statusCode: 500,
+        message: err.message
+      }
+    });
+  }
+}
+
+
+/**
+ *  MESSAGING ROUTES
+ * 
+ *  Enable User to get feedback directly from the 
+ *  Super Admin User through chat messages.
+ * 
+ */
+
+
+// @route       POST /complaint/feedback/:complaintId
+// @desc        Store Admin and Super Admin create feebacks
+// @access      Private
+exports.createFeedbacks = async (req, res) => {
+
+  // const { user, messages } = req.body 
+
+  try {
+    const { complaintId } = req.params;
+
+    let storeOwner = await StoreOwner.findOne({ identifier: req.user.phone_number });
+
+
+    // Complaint Schema
+    const complaint = await Complaint.findById(complaintId);
+
+    // console.log(complaint);
+    // Check if there's complaint
+    if (!complaint) {
+      return res.status(401).send({
+        success: false,
+        message: "Complaint not found!",
+        data: {
+          statusCode: 404,
+          error: error.message
+        }
+      });
+    }
+
+    // console.log(storeOwner.local.user_role);
+
+    // If complaint, push feedback to complaint as array
+    complaint.feedbacks.push({
+      user: storeOwner._id,
+      userPhone: req.user.phone_number,
+      userRole: storeOwner.local.user_role,
+      messages: req.body.messages
+    })
+
+    let feedbacks = await complaint.save();
+
+    // Return response
+    res.status(201).json({
+      success: true,
+      message: "Feedback created!",
+      data: {
+        statusCode: 201,
+        feedbacks: feedbacks.feedbacks
+      }
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: {
+        statusCode: 500,
+        message: err.message
+      }
+    });
+  }
+}
+
+// @route       GET /complaint/feedbacks/:complaintId
+// @desc        Store Admin and Super Admin get feebacks
+// @access      Private
+exports.getFeedbacks = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+
+    let userAdmin = await StoreOwner.findOne({ identifier: req.user.phone_number });
+
+    const complaints = await Complaint.findById(complaintId);
+
+
+    // console.log(complaints.storeOwnerPhone, req.user.phone_number)
+    
+    // Check Authorised user
+    // if (userAdmin.local.user_role !== "super_admin" || complaints.storeOwnerPhone !== userAdmin)
+    // {
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: "Unauthorised admin user!",
+    //   });
+    // }
+
+    let feedbacks = complaints.feedbacks;
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      message: "All Feedbacks for this Complaint!",
+      data: {
+        statusCode: 200,
+        feedbacks
+      }
+    })
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: {
+        statusCode: 500,
+        message: err.message
+      }
+    });
+  }
+}
+
+
+// @route       GET /complaint/feedback/:complaintId/:feedbackId
+// @desc        Get single feedback by id
+// @access      Private
+exports.getFeedback = async (req, res) => {
+  try {
+    const { complaintId, feedbackId } = req.params;
+
+    let userAdmin = await StoreOwner.findOne({ identifier: req.user.phone_number });
+
+    const complaints = await Complaint.findById(complaintId);
+
+    let feedbacks = complaints.feedbacks;
+
+
+
+    // Loop and check feedbacks by id and return
+    feedbacks.forEach(feedback => {
+      if (feedback._id == feedbackId) {
+        // feedbackGotten = feedback;
+
+        return res.status(200).json({
+          success: true,
+          message: "Single feedback gotten!",
+          data: {
+            statusCode: 200,
+            feedback
+          }
+        });
+
+      } 
+
+      if (feedback._id !== feedbackId) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            statusCode: 404,
+            message: `No feedback of id ${feedbackId} found!`
+          }
+        })
+      }
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: {
+        statusCode: 500,
+        message: err.message
+      }
+    });
+  }
+}
+
+// @route       DELETE /complaint/feedback/:complaintId/:feedbackId
+// @desc        delete feedback by id
+// @access      Private
+exports.deleteFeedback = async (req, res) => {
+  try {
+    const { complaintId, feedbackId } = req.params;
+
+    let userAdmin = await StoreOwner.findOne({ identifier: req.user.phone_number });
+
+    const complaints = await Complaint.findById(complaintId);
+
+    // Check if User is Super Admin 
+    if (userAdmin.local.user_role !== "super_admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorised admin user! Only a Super Admin can delete feedbacks!",
+      });
+    }
+
+    let feedbacks = complaints.feedbacks;
+
+    feedbacks.forEach((feedback, index) => {
+      if (feedback._id == feedbackId) {
+        feedbacks.splice(index, 1);
+      }
+    });
+
+    // Save to DB
+    await complaints.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Feedback deleted successfully",
+      data: {
+        statusCode: 200,
+        feedbacks
+      }
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: {
+        statusCode: 500,
+        message: err.message
+      }
+    });
+  }
+}
+
+// @route       DELETE /complaint/feedback/:complaintId/
+// @desc        Delete all Feedbacks
+// @access      Private
+exports.deleteAllFeedbacks = async (req, res) => {
+  try {
+    const { complaintId, feedbackId } = req.params;
+
+    let userAdmin = await StoreOwner.findOne({ identifier: req.user.phone_number });
+
+    const complaints = await Complaint.findById(complaintId);
+
+    // Check if User is Super Admin 
+    if (userAdmin.local.user_role !== "super_admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorised admin user! Only a Super Admin can delete feedbacks!",
+      });
+    }
+
+    let feedbacks = complaints.feedbacks;
+
+    // Delete all feedbacks
+    feedbacks.splice(0, feedbacks.length);
+
+    // Save to DB
+    await complaints.save();
+
+    res.status(200).json({
+      success: true,
+      message: "All feedback deleted successfully",
+      data: {
+        statusCode: 200,
+        feedbacks
+      }
+    });
   } catch (err) {
     return res.status(500).json({
       success: false,

@@ -102,7 +102,15 @@ exports.getAllStores = async (req, res, next) => {
   //current user's id to find user
   const id = req.user.phone_number;
   try {
-    const store_admin = await UserModel.findOne({ identifier: id });
+    const store_admin = await UserModel.findOne({
+      $or: [
+        { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+        {
+          "assistants.phone_number": req.user.phone_number,
+          "assistants.user_role": req.user.user_role
+        }
+      ]
+    });
     if (!store_admin) {
       return res.status(404).json({
         success: false,
@@ -137,7 +145,15 @@ exports.getStore = async (req, res, next) => {
   const identifier = req.user.phone_number;
   let found = false;
 
-  UserModel.findOne({ identifier })
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
     .then(result => {
       let stores = result.stores;
       stores.forEach(store => {

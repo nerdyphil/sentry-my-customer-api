@@ -9,10 +9,6 @@ const mongoose = require("mongoose"),
 const storeAdminSchema = new mongoose.Schema(
   {
     identifier: { type: String, required: true, unique: true },
-    user_role: {
-      type: String,
-      default: "store_admin"
-    },
     local: {
       phone_number: { type: Number, unique: true, sparse: true },
       first_name: { type: String, default: "Not set" },

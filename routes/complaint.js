@@ -48,4 +48,22 @@ router.post(
 // @access      Private
 router.delete("/complaint/delete/:complaintId", auth, complaintsController.deleteOne);
 
+/**
+ * 
+ *  Feedbacks
+ * 
+ */
+
+router.post("/complaint/feedback/:complaintId", auth, complaintsController.createFeedbacks);
+
+router.get("/complaint/feedbacks/:complaintId", auth, complaintsController.getFeedbacks);
+
+
+router.get("/complaint/feedback/:complaintId/:feedbackId", auth, complaintsController.getFeedback);
+
+router.delete("/complaint/feedback/:complaintId/:feedbackId", auth, complaintsController.deleteFeedback);
+
+
+router.delete("/complaint/feedbacks/:complaintId/", auth, complaintsController.deleteAllFeedbacks);
+
 module.exports = router;

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const ComplaintFeedback = require("./complaint_feedbacks");
 
 const ComplaintSchema = new mongoose.Schema({
   storeOwner: {
@@ -34,6 +35,7 @@ const ComplaintSchema = new mongoose.Schema({
     enum: ["New", "Pending", "Resolved", "Closed"],
     default: "New"
   },
+  feedbacks: [ComplaintFeedback.schema],
   date: {
     type: Date,
     default: Date.now 

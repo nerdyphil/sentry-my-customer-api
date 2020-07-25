@@ -18,6 +18,9 @@ const DebtReminder = new mongoose.Schema({
     type: Number,
     required: true
   },
+  code: {
+    type: String
+  },
   ts_ref_id: { type: mongoose.Schema.Types.ObjectId, ref: 'transaction' },
   message: { type: String, required: true },
   status: { type: String, required: true },

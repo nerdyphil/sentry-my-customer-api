@@ -3,7 +3,9 @@ const mongoose = require("mongoose")
 //schema for store assistant
 const storeAssistantSchema = new mongoose.Schema({
 	name: { type: String, required: true},
-	phone_number: { type: String, required: true },
+	first_name: { type: String},
+	last_name: { type: String},
+	phone_number: { type: String, required: true, unique: true },
 	email: { type: String,},
 	password: { type: String, default: "password" },
 	store_id: {type: String},

@@ -8,12 +8,13 @@ const Transaction = require("../models/transaction");
 const { all } = require("../routes/customer");
 const cron = require("node-cron");
 const transaction = require("../models/transaction");
+const code = require("./../util/code_random");
 const africastalking = require("africastalking")({
   apiKey: process.env.AFRICASTALKING_API_KEY,
-  username: process.env.AFRICASTALKING_USERNAME,
+  username: process.env.AFRICASTALKING_USERNAME
 });
 
-exports.validate = (method) => {
+exports.validate = method => {
   switch (method) {
     case "body": {
       return [
@@ -23,8 +24,10 @@ exports.validate = (method) => {
         body("status").isLength({ min: 3 }),
         body("pay_date").isLength({ min: 3 }),
         body("transaction_id").optional(),
-        body("name").isString().isLength({ min: 1 }),
-        body("amount").isLength({ min: 3 }),
+        body("name")
+          .isString()
+          .isLength({ min: 1 }),
+        body("amount").isLength({ min: 3 })
       ];
     }
   }
@@ -117,13 +120,21 @@ exports.getAll = async (req, res) => {
   const identifier = req.user.phone_number;
   let allDebts = [];
 
-  UserModel.findOne({ identifier })
-    .then((user) => {
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
+    .then(user => {
       let stores = user.stores;
       //search loop to get all debt
-      stores.forEach((store) => {
-        store.customers.forEach((customer) => {
-          customer.transactions.forEach((transaction) => {
+      stores.forEach(store => {
+        store.customers.forEach(customer => {
+          customer.transactions.forEach(transaction => {
             if (
               transaction.type.toLowerCase() == "debt" &&
               transaction.status == false
@@ -139,18 +150,18 @@ exports.getAll = async (req, res) => {
         message: "All Debts",
         data: {
           statusCode: 200,
-          debts: allDebts,
-        },
+          debts: allDebts
+        }
       });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Couldn't find user or some server error occurred",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
 };
@@ -160,13 +171,21 @@ exports.getStoreDebt = (req, res) => {
   const identifier = req.user.phone_number;
   let allDebts = [];
 
-  UserModel.findOne({ identifier })
-    .then((user) => {
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
+    .then(user => {
       //search loop to get the debt of a store passed in the params
-      user.stores.forEach((store) => {
+      user.stores.forEach(store => {
         if (store._id == req.params.storeId) {
-          store.customers.forEach((customer) => {
-            customer.transactions.forEach((transaction) => {
+          store.customers.forEach(customer => {
+            customer.transactions.forEach(transaction => {
               if (
                 transaction.type.toLowerCase() == "debt" &&
                 transaction.status == false
@@ -183,18 +202,18 @@ exports.getStoreDebt = (req, res) => {
         message: "All Debts",
         data: {
           statusCode: 200,
-          debts: allDebts,
-        },
+          debts: allDebts
+        }
       });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Couldn't find user or some server error occurred",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
 };
@@ -202,12 +221,20 @@ exports.getStoreDebt = (req, res) => {
 exports.getById = (req, res) => {
   let identifier = req.user.phone_number;
 
-  UserModel.findOne({ identifier })
-    .then((user) => {
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
+    .then(user => {
       let found = false;
-      user.stores.forEach((store) => {
-        store.customers.forEach((customer) => {
-          customer.transactions.forEach((transaction) => {
+      user.stores.forEach(store => {
+        store.customers.forEach(customer => {
+          customer.transactions.forEach(transaction => {
             if (transaction._id == req.params.transactionId) {
               found = true;
               return res.status(200).json({
@@ -215,8 +242,8 @@ exports.getById = (req, res) => {
                 message: "found",
                 data: {
                   statusCode: 200,
-                  debt: transaction,
-                },
+                  debt: transaction
+                }
               });
             }
           });
@@ -227,19 +254,19 @@ exports.getById = (req, res) => {
           success: false,
           message: "Transaction not found",
           data: {
-            statusCode: 404,
-          },
+            statusCode: 404
+          }
         });
       }
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Couldn't find user or some server error occurred",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
 };
@@ -248,14 +275,22 @@ exports.getById = (req, res) => {
 exports.markAsPaid = (req, res) => {
   let identifier = req.user.phone_number;
 
-  UserModel.findOne({ identifier })
-    .then((user) => {
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
+    .then(user => {
       let stores = user.stores;
-      stores.forEach((store) => {
+      stores.forEach(store => {
         let customers = store.customers;
-        customers.forEach((customer) => {
+        customers.forEach(customer => {
           let transactions = customer.transactions;
-          transactions.forEach((transaction) => {
+          transactions.forEach(transaction => {
             if (transaction._id == req.params.transactionId) {
               transaction["status"] = true;
             }
@@ -264,34 +299,34 @@ exports.markAsPaid = (req, res) => {
       });
       user
         .save()
-        .then((result) => {
+        .then(result => {
           return res.status(201).json({
             sucess: true,
             message: "Operation Successful",
             data: {
-              result,
-            },
+              result
+            }
           });
         })
-        .catch((err) => {
+        .catch(err => {
           res.status(500).json({
             sucess: false,
             message: "Unable to change status",
             error: {
               statusCode: 500,
-              message: err.message,
-            },
+              message: err.message
+            }
           });
         });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Some server error occurred",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
 };
@@ -408,7 +443,7 @@ exports.markAsPaid = (req, res) => {
 let regex = /^\+(?:[0-9] ?){6,14}[0-9]$/;
 
 // Send reminder route
-exports.send = (req, res) => {
+/*exports.send = (req, res) => {
   const { transaction_id, message } = req.body;
 
   if (!transaction_id) {
@@ -417,19 +452,27 @@ exports.send = (req, res) => {
       Message: "Please enter a valid transaction_id",
       error: {
         errorCode: "400",
-        Message: "Please enter a valid transaction_id",
-      },
+        Message: "Please enter a valid transaction_id"
+      }
     });
   }
   let identifier = req.user.phone_number;
   let to, store_name, amount, reminder_message;
 
-  UserModel.findOne({ identifier })
-    .then((user) => {
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
+    .then( async user => {
       let found = false;
-      user.stores.forEach((store) => {
-        store.customers.forEach((customer) => {
-          customer.transactions.forEach((transaction) => {
+      user.stores.forEach(store => {
+        store.customers.forEach(customer => {
+          customer.transactions.forEach(transaction => {
             if (transaction._id == transaction_id) {
               found = true;
               to = customer.phone_number;
@@ -443,7 +486,7 @@ exports.send = (req, res) => {
       if (found == false) {
         return res.status(400).json({
           success: false,
-          message: `Customer with transaction id ${transaction_id} not found`,
+          message: `Customer with transaction id ${transaction_id} not found`
         });
       }
 
@@ -457,10 +500,8 @@ exports.send = (req, res) => {
         if (to.charAt(0) == "0") {
           to = to.slice(1);
           to = "+234" + to;
-        } else if (to.charAt(0) == "2") {
-          to = "+" + to;
         } else {
-          to = "+234" + to;
+          to = "+" + to;
         }
       }
 
@@ -469,42 +510,278 @@ exports.send = (req, res) => {
         .send({
           to,
           message: reminder_message,
-          enque: true,
+          enque: true
         })
-        .then((response) => {
+        .then(response => {
           console.log(response);
           if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
             res.status(200).json({
               success: false,
-              Message: "Invalid Phone Number",
+              Message: "Invalid Phone Number"
             });
           } else {
+            user.save()
             res.status(200).json({
               success: true,
               Message: "Reminder sent",
               details: {
                 to,
-                reminder_message,
+                reminder_message
               },
-              response,
+              response
             });
           }
         })
-        .catch((err) => {
+        .catch(err => {
           console.log(err);
           res.send(err);
         });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Something Went wrong",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
+};*/
+
+exports.findAllAdmin = async (req, res) => {
+  try {
+    const identifier = req.user.phone_number;
+    const admin = await UserModel.findOne({ identifier });
+    if (!admin || admin.local.user_role !== "super_admin") {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        data: {
+          statusCode: 404,
+          message: "User not found"
+        }
+      });
+    }
+
+    const users = await UserModel.find();
+    if (!users) {
+      return res.status(404).json({
+        success: false,
+        message: "Users not found",
+        data: {
+          statusCode: 404,
+          message: "Users not found"
+        }
+      });
+    }
+
+    let debts = [];
+    users.forEach(user => {
+      user.stores.forEach(store => {
+        store.customers.forEach(customer => {
+          customer.transactions.forEach(transaction => {
+            if(transaction.debts && transaction.debts.length > 0) {
+              transaction.debts.forEach(debt => {
+                let localDebt = JSON.parse(JSON.stringify(debt));
+                localDebt.store_name = store.store_name;
+                debts.push(localDebt);
+              })
+            }
+          });
+        });
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Debts",
+      data: {
+        debts: debts
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      data: {
+        statusCode: 500,
+        message: error
+      }
+    });
+  }
+}
+
+exports.send = async (req, res) => {
+  try {
+    let to, store_name, amount, reminder_message;
+
+    const user = await UserModel.findOne({
+      $or: [
+        { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+        {
+          "assistants.phone_number": req.user.phone_number,
+          "assistants.user_role": req.user.user_role
+        }
+      ]
+    });
+
+    const store = user.stores.find(store => store._id == req.params.store_id);
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "Store not found",
+        data: {
+          statusCode: 404,
+          message: "Store not found"
+        }
+      });
+    }
+
+    const customer = store.customers.find(
+      customer => customer._id == req.params.customer_id
+    );
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+        data: {
+          statusCode: 404,
+          message: "Customer not found"
+        }
+      });
+    }
+
+    const transaction = customer.transactions.find(
+      transactions => transactions._id == req.params.transaction_id
+    );
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found",
+        data: {
+          statusCode: 404,
+          message: "Transaction not found"
+        }
+      });
+    }
+
+    to = customer.phone_number;
+    amount = transaction.amount;
+    store_name = store.store_name;
+
+    if (req.body.message == undefined) {
+      reminder_message = `You have an unpaid debt of ${amount} Naira in ${store_name}`;
+    } else {
+      reminder_message = req.body.message;
+    }
+
+    let code_generated  = null;
+    if(req.body.send_link) { 
+      while(!code_generated) {
+        code_generated = code(10, true)
+        const validate = await UserModel.findOne({
+          stores: { 
+            $elemMatch: {
+              customers: { 
+                $elemMatch: {
+                  transactions: {
+                    $elemMatch: {
+                      debts: {
+                        $elemMatch: {
+                          code: code_generated
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } 
+        });
+        if(validate) {
+          code_generated  = null;
+        }
+      }
+      reminder_message += ` customerpay.me/${code_generated}`;
+    }
+
+    const reminder = {
+      user_phone_number: req.user.phone_number,
+      customer_phone_number: customer.phone_number,
+      name: customer.name,
+      amount: transaction.amount,
+      ts_ref_id: transaction._id,
+      message: reminder_message,
+      status: "sending",
+      expected_pay_date: Date.now(),
+      code: code_generated
+    }
+
+    transaction.debts.push(reminder)
+    await user.save()
+
+    if (!regex.test(to)) {
+      if (to.charAt(0) == "0") {
+        to = to.slice(1);
+        to = "+234" + to;
+      } else {
+        to = "+" + to;
+      }
+    }
+
+    const sms = africastalking.SMS;
+    sms
+      .send({
+        to,
+        message: reminder_message,
+        enque: true
+      })
+      .then(response => {
+        if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
+          res.status(200).json({
+            success: false,
+            Message: "Invalid Phone Number"
+          });
+        } else {
+          let reminderStatus = transaction.debts.find(debt => {
+            if(debt.expected_pay_date.getTime() === reminder.expected_pay_date) {
+              return true
+            }
+            return false
+          })
+          if(!reminderStatus) {
+            console.log("reminderStatus not found")
+          } else {
+            reminderStatus.status = "sent"
+            user.save()
+          }
+          res.status(200).json({
+            success: true,
+            Message: "Reminder sent",
+            details: {
+              to,
+              reminder_message
+            },
+            response
+          });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.send(err);
+      });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      data: {
+        statusCode: 500,
+        message: error
+      }
+    });
+  }
 };
 
 // Schedule reminder route
@@ -517,18 +794,26 @@ exports.schedule = (req, res) => {
       Message: "Please provide the valid parameters",
       error: {
         errorCode: "400",
-        Message: "Please provide the valid parameters",
-      },
+        Message: "Please provide the valid parameters"
+      }
     });
   }
   let identifier = req.user.phone_number;
   let to, store_name, amount, reminder_message;
 
-  UserModel.findOne({ identifier })
-    .then((user) => {
-      user.stores.forEach((store) => {
-        store.customers.forEach((customer) => {
-          customer.transactions.forEach((transaction) => {
+  UserModel.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
+    .then(user => {
+      user.stores.forEach(store => {
+        store.customers.forEach(customer => {
+          customer.transactions.forEach(transaction => {
             if (transaction._id == transaction_id) {
               to = customer.phone_number;
               amount = transaction.total_amount;
@@ -565,13 +850,13 @@ exports.schedule = (req, res) => {
         sms
           .send({
             to,
-            message: reminder_message,
+            message: reminder_message
           })
-          .then((response) => {
+          .then(response => {
             console.log(response);
             send.destroy();
           })
-          .catch((err) => {
+          .catch(err => {
             console.log(err);
           });
       });
@@ -580,18 +865,18 @@ exports.schedule = (req, res) => {
         Message: "Reminder Scheduled",
         details: {
           to,
-          reminder_message,
-        },
+          reminder_message
+        }
       });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Something went wrong",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
 };

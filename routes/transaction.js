@@ -11,6 +11,7 @@ router.post("/transaction/new", auth, transactions.validate("create"), bodyValid
 router.get("/transaction/store/:store_id", auth, transactions.findAllStore);
 router.get("/transaction/store_admin", auth, transactions.findAllUser);
 router.get("/transaction/all", auth, transactions.findAllAdmin);
+router.get("/transaction/admin/:transaction_id/:store_id/:customer_id", auth, transactions.findOneAdmin);
 
 // Retrieve a single Transaction with transaction_id
 router.get("/transaction/:transaction_id/:store_id/:customer_id", auth, transactions.findOne);

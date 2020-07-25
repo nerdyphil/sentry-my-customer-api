@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 const responseManager = require("../util/response_manager");
+const util = require("../util/sort_data");
 const DataUri = require("datauri/parser");
 const path = require("path");
 const { uploader } = require("./cloudinaryController");
@@ -44,7 +45,15 @@ exports.validate = method => {
 exports.allStoreAssistant = (req, res) => {
   const id = req.user.phone_number;
 
-  User.findOne({ identifier: id })
+  User.findOne({
+    $or: [
+      { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+      {
+        "assistants.phone_number": req.user.phone_number,
+        "assistants.user_role": req.user.user_role
+      }
+    ]
+  })
     .then(user => {
       const storeAssistants = user.assistants;
       res.status(200).json({
@@ -139,7 +148,7 @@ exports.newStoreAssistant = async (req, res) => {
     name: name,
     phone_number: phone_number,
     email: email,
-    password: await bcrypt.hash(password, 10),
+    password: await bcrypt.hash(password, 10)
   };
 
   User.findOne({ identifier: id })
@@ -171,6 +180,7 @@ exports.newStoreAssistant = async (req, res) => {
       stores.forEach(store => {
         if (store._id == store_id) {
           newStoreAssistantData.store_id = store._id;
+          store.assistants.push(newStoreAssistantData);
         }
       });
 
@@ -213,38 +223,214 @@ exports.newStoreAssistant = async (req, res) => {
 };
 
 // Get Single Store Assistant with assistant_id.
-exports.getSingleStoreAssistant = (req, res) => {
-  const id = req.user.phone_number;
+exports.getSingleStoreAssistant = async (req, res) => {
+  // User.findOne({
+  //   $or: [
+  //     { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+  //     {
+  //       "assistants.phone_number": req.user.phone_number,
+  //       "assistants.user_role": req.user.user_role
+  //     }
+  //   ]
+  // })
+  //   .then(user => {
+  //     const storeAssistants = user.assistants;
+
+  //     storeAssistants.forEach(storeAssistant => {
+  //       if (storeAssistant._id == storeAssistantId) {
+  //         return res.status(200).json({
+  //           success: true,
+  //           message: "Store Assistant retrieved successfully.",
+  //           data: {
+  //             status: 200,
+  //             message: "Store Assistant retrieved successfully.",
+  //             store_assistant: storeAssistant
+  //           }
+  //         });
+  //       }
+  //     });
+  //   })
+  //   .catch(error => {
+  //     return res.status(500).json({
+  //       success: "false",
+  //       message: "Internal Server Error.",
+  //       error: {
+  //         statusCode: 500,
+  //         message: "Internal Server Error."
+  //       }
+  //     });
+  //   });
+
   const storeAssistantId = req.params.assistant_id;
-
-  User.findOne({ identifier: id })
-    .then(user => {
-      const storeAssistants = user.assistants;
-
-      storeAssistants.forEach(storeAssistant => {
-        if (storeAssistant._id == storeAssistantId) {
-          return res.status(200).json({
-            success: true,
-            message: "Store Assistant retrieved successfully.",
-            data: {
-              status: 200,
-              message: "Store Assistant retrieved successfully.",
-              store_assistant: storeAssistant
-            }
-          });
+  const data ={};
+  
+  const storeAdmin = await User.findOne({
+      $or: [
+        { identifier: req.user.phone_number, "local.user_role": req.user.user_role },
+        {
+          "assistants.phone_number": req.user.phone_number,
+          "assistants.user_role": req.user.user_role
         }
-      });
-    })
-    .catch(error => {
-      return res.status(500).json({
-        success: "false",
-        message: "Internal Server Error.",
-        error: {
-          statusCode: 500,
-          message: "Internal Server Error."
-        }
-      });
+      ]
+  })
+
+  if (!storeAdmin) {
+    return res.status(404).json({
+      success: false,
+      message: "Store Admin not found",
+      error: {
+        statusCode: 404,
+        message: "Store Admin not found"
+      }
     });
+  }
+  try {
+    const assistant = storeAdmin.assistants.find(assistant => assistant._id == storeAssistantId);
+    data.user = assistant;
+    
+    const store_id = assistant.store_id;
+    if (!store_id) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assistant does not belong to a store',
+        error:{
+          statusCode: '',
+          message: 'Assistant does not belong to a store'
+        }
+      })
+    }
+    const assistantStore = storeAdmin.stores.find(store => store._id == store_id);
+    data.storeName = assistantStore.store_name;
+    data.storeAddress = assistantStore.shop_address
+    data.customerCount = 0; 
+    data.transactionCount = 0;
+    data.recentTransactions =[];
+    data.chart = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    data.debtCount = 0;
+    data.debtAmount = 0;
+    data.revenueCount = 0;
+    data.revenueAmount = 0;
+    data.receivablesCount = 0;
+    data.receivablesAmount = 0;
+    data.amountForCurrentMonth = 0;
+    data.amountForPreviousMonth = 0;
+    assistantStore.customers.forEach(customer => {
+      data.customerCount += 1;
+      customer.transactions.forEach(transaction => {
+        if (transaction.assistant_inCharge == assistant._id) {
+          data.transactionCount += 1;
+
+          let obj = {};
+          obj.customerName = customer.name;
+          obj.storeName = assistantStore.store_name;
+          obj.transaction = transaction;
+          data.recentTransactions.push(obj);
+
+          data.chart = util.getTransactionForMonth(obj, data.chart);
+
+          if (transaction.type.toLowerCase() == 'debt' && transaction.status == false) {
+            data.debtCount += 1;
+            try { data.debtAmount += parseFloat(transaction.amount); 
+            } catch (error) {
+              data.debtAmount += 0
+            }
+          }
+
+          if (transaction.type.toLowerCase() == 'debt' &&  transaction.status == true) {
+            data.revenueCount += 1;
+            try { data.revenueAmount += parseFloat(transaction.amount); 
+            } catch (error) {
+              data.revenueAmount += 0
+            }
+
+            let date = new Date();
+            let transactionDate = new Date(transaction.createdAt)
+            //get revenue for current month
+            if (date.getMonth() == transactionDate.getMonth() && 
+              date.getFullYear() == transactionDate.getFullYear()
+            ) 
+            {
+              try {
+                data.amountForCurrentMonth += parseFloat(transaction.amount)
+              } catch (error) {
+                data.amountForCurrentMonth += 0
+              }
+            }
+
+            //get revenue for previous month
+            if (date.getMonth()-1 == transactionDate.getMonth() && 
+              date.getFullYear() == transactionDate.getFullYear()
+            ) {
+              try {
+                data.amountForPreviousMonth += parseFloat(transaction.amount)
+              } catch (error) {
+                data.amountForPreviousMonth += 0
+              }
+            }
+          }
+
+          if (transaction.type.toLowerCase() == 'paid') {
+            data.revenueCount += 1;
+            try { data.revenueAmount += parseFloat(transaction.amount); 
+            } catch (error) {
+              data.revenueAmount += 0
+            }
+
+            let date = new Date();
+            let transactionDate = new Date(transaction.createdAt)
+            //get revenue for current month
+            if (date.getMonth() == transactionDate.getMonth() && 
+              date.getFullYear() == transactionDate.getFullYear()
+            ) 
+            {
+              try {
+                data.amountForCurrentMonth += parseFloat(transaction.amount)
+              } catch (error) {
+                data.amountForCurrentMonth += 0
+              }
+            }
+
+            //get revenue for previous month
+            if (date.getMonth()-1 == transactionDate.getMonth() && 
+              date.getFullYear() == transactionDate.getFullYear()
+            ) {
+              try {
+                data.amountForPreviousMonth += parseFloat(transaction.amount)
+              } catch (error) {
+                data.amountForPreviousMonth += 0
+              }
+            }
+          }
+
+          if (transaction.type.toLowerCase() == 'receivables') {
+            data.receivablesCount += 1;
+            try { data.receivablesAmount +=  parseFloat(transaction.amount); 
+            } catch (error) {
+              data.receivablesAmount += 0
+            }
+          }
+        }
+      })
+    })
+    //sort transactions by time
+    data.recentTransactions = data.recentTransactions.sort(util.compareRecentTransactions).slice(0,15)
+
+    return res.status(200).json({
+      success: true,
+      message: "Store Assistant data",
+      data: data
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+      error:{
+        statusCode: 500,
+        message: error.message
+      }
+    })
+  }
+  
 };
 
 //  Update Single Store Assistant with assistant_id.
@@ -386,9 +572,9 @@ exports.deleteSingleStoreAssistant = (req, res) => {
 
 exports.updateStoreAdmin = (req, res) => {
   const identifier = req.user.phone_number;
-  let {first_name, last_name, email} = req.body;
+  let { first_name, last_name, email } = req.body;
   User.findOne({ identifier })
-    .then(async (user) => {
+    .then(async user => {
       user.local.first_name = first_name || user.local.first_name;
       user.local.last_name = last_name || user.local.last_name;
       user.local.email = email || user.local.email;
@@ -455,7 +641,7 @@ exports.updatePassword = (req, res) => {
             }
           });
 
-        bcrypt.compare(old_password, user.local.password, function (
+        bcrypt.compare(old_password, user.local.password, function(
           err,
           result
         ) {
@@ -490,13 +676,13 @@ exports.updatePassword = (req, res) => {
 };
 
 exports.forgot = async (req, res) => {
-  await crypto.randomBytes(20, function (err, buf) {
+  await crypto.randomBytes(20, function(err, buf) {
     let token = buf.toString("hex");
     if (err) {
       next(err);
     }
 
-    User.findOne({ identifier: req.body.phone_number }, function (err, user) {
+    User.findOne({ identifier: req.body.phone_number }, function(err, user) {
       if (err) {
         return res.status(404).json({
           success: "false",
@@ -552,7 +738,7 @@ exports.forgot = async (req, res) => {
               "\n\n" +
               "If you did not request this, please ignore this email and your password will remain unchanged.\n"
           };
-          smtpTransport.sendMail(mailOptions, function (err, info) {
+          smtpTransport.sendMail(mailOptions, function(err, info) {
             if (err) {
               return res.status(400).json({
                 success: "false",
@@ -602,7 +788,7 @@ exports.forgot = async (req, res) => {
               "\n\n" +
               "If you did not request this, please ignore this email and your password will remain unchanged.\n"
           };
-          smtpTransport.sendMail(mailOptions, function (err, info) {
+          smtpTransport.sendMail(mailOptions, function(err, info) {
             if (err) {
               return res.status(400).json({
                 success: "false",
@@ -652,7 +838,7 @@ exports.tokenreset = async (req, res) => {
       resetPasswordToken: req.params.token,
       resetPasswordExpires: { $gt: Date.now() }
     },
-    function (err, user) {
+    function(err, user) {
       if (err) {
         return res.status(400).json({
           success: "false",
@@ -677,7 +863,7 @@ exports.tokenreset = async (req, res) => {
       user.resetPasswordToken = undefined; //turn reset password to something not needed
       user.resetPasswordExpires = undefined;
 
-      user.save(function (err) {
+      user.save(function(err) {
         if (err) {
           return res.status(400).json({
             success: "false",
@@ -705,7 +891,7 @@ exports.tokenreset = async (req, res) => {
             user.email +
             " has just been changed.\n"
         };
-        smtpTransport.sendMail(mailOptions, function (err) {
+        smtpTransport.sendMail(mailOptions, function(err) {
           if (err) {
             return res.status(200).json({
               success: "false",
