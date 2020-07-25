@@ -26,6 +26,8 @@ const reset = require("./routes/reset");
 const debt = require("./routes/debt_reminder");
 const businessCards = require("./routes/businessCardRoute");
 const dashboard = require("./routes/dashboard");
+const messaging = require("./routes/messaging");
+
 app.use(cors());
 app.use(expressValidator());
 
@@ -106,6 +108,7 @@ app.use(complaintRouter);
 app.use(user);
 app.use(docs);
 app.use(dashboard);
+app.use(messaging);
 app.use("/register", register);
 
 app.use("/login", login);
