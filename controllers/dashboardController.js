@@ -187,15 +187,21 @@ exports.storeAdminDashboard = async (req, res, next) => {
         },
       ];
     }, []);
+    console.log(data.debtCount)
     data.debtAmount = parseInt(
       data.debtCount.reduce(
-        (acc, cur) => acc + parseFloat(cur.debt.amount) || 0,
+        (acc, cur) =>{ 
+          if (cur.debt.status == true) {
+            return acc
+          }
+          return acc + parseFloat(cur.debt.amount) || 0
+        },
         0
       )
     );
-    data.revenueCount = data.debtCount.reduce((acc, cur) => {
-      if (!cur.debt.status) return acc;
-      return acc + 1;
+    data.revenueCount = data.transactions.reduce((acc, cur) => {
+      if (cur.transaction.status == true || cur.transaction.type == 'paid') return acc + 1;
+      return acc;
     }, 0);
     data.revenueAmount = parseInt(
       data.debtCount.reduce((acc, cur) => {
