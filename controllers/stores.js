@@ -37,9 +37,9 @@ exports.getAllStores = async (req, res) => {
     if (req.user.user_role === "super_admin") {
       stores = await storeService.getAllStores({});
     } else {
-      stores = await storeService.getAllStores({
+      stores = (await storeService.getAllStores({
         store_admin_ref: req.user.store_admin_ref,
-      });
+      })).map(elem => elem[0]);
     }
     res.status(200).json({
       success: true,
