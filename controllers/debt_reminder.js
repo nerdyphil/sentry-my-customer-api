@@ -236,6 +236,7 @@ exports.send = async (req, res) => {
       transaction = await Transaction.findOne({
         _id: req.params.transaction_id,
         type: "debt",
+        store_admin_id: req.user.store_admin_id,
       })
         .populate({ path: "customer_ref_id store_ref_id" })
         .exec();
@@ -267,7 +268,7 @@ exports.send = async (req, res) => {
       trans_ref_id: transaction._id,
       store_ref_id: transaction.store_ref_id._id,
       status: "sending",
-      expected_pay_date: transaction.expected_pay_date,
+      expected_pay_date: transaction.expected_pay_date || Date.now(),
       message,
       amount,
       name: transaction.customer_ref_id.name,
