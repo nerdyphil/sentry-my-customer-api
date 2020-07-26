@@ -27,10 +27,17 @@ module.exports = {
     return customers;
   },
   getOneCustomer: async (params) => {
-    let customer = await Customer.findOne(params);
+    let customer = await Customer.findOne(params)
+      .populate({ path: "store_ref_id" })
+      .exec();
     if (!customer) return customer;
+    const { store_name, _id } = customer.store_ref_id;
     return {
       ...customer.toObject(),
+      store_name,
+      storeName: store_name,
+      store_id: _id,
+      store_ref_id: _id,
       transactions: await transactionService.getTransactions({
         customer_ref_id: customer._id,
       }),
