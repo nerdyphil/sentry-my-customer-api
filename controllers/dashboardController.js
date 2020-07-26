@@ -377,7 +377,7 @@ exports.storeAssistantDashboard = async (req, res) => {
     data.debtAmount = 0;
     data.revenueCount = 0;
     data.revenueAmount = 0;
-    data.recievablesAmount = 0;
+    data.receivablesAmount = 0;
     data.amountForCurrentMonth = 0;
     data.amountForPreviousMonth = 0;
     const assistantstore_customers = await customerModel.find({
