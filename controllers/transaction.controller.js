@@ -252,11 +252,18 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
       req.transaction = transaction;
       return next();
     }
+    const debts = await DebtReminders.find({
+      trans_ref_id: transaction._id,
+    });
+    const response = transaction.toObject()
     return res.status(200).json({
       success: true,
       message: "Transaction",
       data: {
-        transaction,
+        transaction: {
+          ...response,
+          debts
+        },
       },
     });
   } catch (error) {
