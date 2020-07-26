@@ -187,7 +187,6 @@ exports.storeAdminDashboard = async (req, res, next) => {
         },
       ];
     }, []);
-    console.log(data.debtCount)
     data.debtAmount = parseInt(
       data.debtCount.reduce(
         (acc, cur) =>{ 
