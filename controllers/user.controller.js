@@ -294,7 +294,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
             }
           }
           if (
-            transaction.type.toLowercade() == "debt" &&
+            transaction.type.toLowerCase() == "debt" &&
             transaction.status == true
           ) {
             data.revenueCount + 1;
