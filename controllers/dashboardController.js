@@ -150,7 +150,8 @@ exports.storeAdminDashboard = async (req, res, next) => {
       await transactionModel.find({
         store_admin_ref: req.user._id,
         type: "debt",
-      })
+      }).populate({ path: "store_ref_id" })
+      .exec()
     )
       .reduce((acc, cur) => {
         if (!cur) return acc;
