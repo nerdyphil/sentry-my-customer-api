@@ -214,7 +214,12 @@ exports.newComplaint = async (req, res) => {
   // Validate body request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res
+      .status(400)
+      .json({
+        message: "fields must be at least 11 characters long",
+        errors: errors.array(),
+      });
   }
 
   // Deconstruct req body
