@@ -226,7 +226,10 @@ exports.send = async (req, res) => {
 
     let transaction;
     if (req.user.user_role === "super_admin") {
-      transaction = await Transaction.findOne({ type: "debt", _id: req.params.transaction_id })
+      transaction = await Transaction.findOne({
+        type: "debt",
+        _id: req.params.transaction_id,
+      })
         .populate({ path: "customer_ref_id store_ref_id" })
         .exec();
     } else {
@@ -268,9 +271,9 @@ exports.send = async (req, res) => {
       message,
       amount,
       name: transaction.customer_ref_id.name,
-      customer_phone_number: transaction.customer_ref_id.phone_number
+      customer_phone_number: transaction.customer_ref_id.phone_number,
     });
-    await debt.save()
+    await debt.save();
     const sms = africastalking.SMS;
     const response = await sms.send({
       to,
@@ -283,12 +286,12 @@ exports.send = async (req, res) => {
         Message: "Invalid Phone Number",
       });
     }
-    debt.status = "send"
-    await debt.save()
+    debt.status = "send";
+    await debt.save();
     return res.status(200).json({
       success: true,
-      Message: "Reminder sent",
-      details: {
+      message: "Reminder sent",
+      data: {
         to,
         message,
       },
