@@ -9,7 +9,7 @@ module.exports = {
     let transactions = await Transaction.find(params)
       .populate({ path: "store_ref_id customer_ref_id" })
       .exec();
-    transactions = await transactions.map(async (acc, transaction) => {
+    transactions = await transactions.reduce(async (acc, transaction) => {
       acc = await acc;
       transaction = transaction.toObject();
       if (!transaction.store_ref_id || !transaction.customer_ref_id) return acc;
