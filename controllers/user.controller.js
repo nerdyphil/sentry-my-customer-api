@@ -109,7 +109,7 @@ exports.allStoreAssistant = async (req, res) => {
   try {
     let assistants;
     if (req.user.user_role === "super_admin") {
-      assitants = await StoreAssistant.find({}).select("-password").exec();
+      assistants = await StoreAssistant.find({}).select("-password").exec();
     } else {
       assistants = await StoreAssistant.find({ store_admin_ref: req.user._id })
         .select("-password")

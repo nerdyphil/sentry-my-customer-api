@@ -22,7 +22,7 @@ router.get("/transaction/all", auth, transactions.findAllAdmin);
 router.get(
   "/transaction/:transaction_id/:store_id/:customer_id",
   auth,
-  transactions.findOne()
+  transactions.findOne
 );
 
 router.get("/transaction/:store_id/:customer_id", auth, transactions.findAll);
@@ -33,7 +33,6 @@ router.patch(
   auth,
   transactions.validate("update"),
   bodyValidator,
-  transactions.findOne(true),
   transactions.update
 );
 
@@ -41,7 +40,6 @@ router.patch(
 router.delete(
   "/transaction/delete/:transaction_id/:store_id/:customer_id",
   auth,
-  transactions.findOne(true),
   transactions.delete
 );
 
