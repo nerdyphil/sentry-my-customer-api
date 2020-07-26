@@ -84,23 +84,33 @@ module.exports.loginUser = async (req, res) => {
   const { password, phone_number: identifier } = req.body;
   try {
     let user = await UserModel.findOne({ identifier });
-    if (user && (await bCrypt.compare(password, user.local.password))) {
-      const apiToken = module.exports.signToken({
-        phone_number: user.identifier,
-        // password: user.local.password,
-        user_role: user.local.user_role,
-        _id: user._id,
-      });
-      user.api_token = apiToken;
-      user = await user.save();
-      res.status(200).json({
-        success: true,
-        message: "You're logged in successfully.",
-        data: {
-          statusCode: 200,
-          user,
-        },
-      });
+    if (user) {
+      if (user && (await bCrypt.compare(password, user.local.password))) {
+        const apiToken = module.exports.signToken({
+          phone_number: user.identifier,
+          // password: user.local.password,
+          user_role: user.local.user_role,
+          _id: user._id,
+        });
+        user.api_token = apiToken;
+        user = await user.save();
+        res.status(200).json({
+          success: true,
+          message: "You're logged in successfully.",
+          data: {
+            statusCode: 200,
+            user,
+          },
+        });
+      } else {
+        res.status(401).json({
+          success: false,
+          message: "invalid credentials",
+          error: {
+            statusCode: 401,
+          },
+        });
+      }
     } else if (!user) {
       let assistant = await AssistantModel.findOne({
         phone_number: identifier,
