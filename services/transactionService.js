@@ -9,6 +9,7 @@ module.exports = {
   getTransactions: async (params) => {
     let transactions = await Transaction.find(params)
       .populate({ path: "store_ref_id customer_ref_id" })
+      .sort({ createdAt: -1 })
       .exec();
     transactions = await transactions.reduce(async (acc, transaction) => {
       acc = await acc;

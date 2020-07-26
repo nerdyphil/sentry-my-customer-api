@@ -203,6 +203,7 @@ exports.findAllAdmin = async (req, res) => {
       });
     }
     const transactions = await Transaction.find({})
+      .sort({ createdAt: -1 })
       .populate({ path: "store_ref_id" })
       .populate({ path: "customer_ref_id" })
       .populate({ path: "store_admin_ref" });
