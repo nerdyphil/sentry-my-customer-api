@@ -13,7 +13,8 @@ module.exports = {
         let transactions = await transactionService.getTransactions({
           customer_ref_id: customer._id,
         });
-        const { store_name, _id } = customer.store_ref_id;
+        const { store_name = "not_set", _id = customer.store_ref_id } =
+          customer.store_ref_id || {};
         return {
           ...customer,
           store_name,
@@ -31,7 +32,8 @@ module.exports = {
       .populate({ path: "store_ref_id" })
       .exec();
     if (!customer) return customer;
-    const { store_name, _id } = customer.store_ref_id;
+    const { store_name = "not_set", _id = customer.store_ref_id } =
+      customer.store_ref_id || {};
     return {
       ...customer.toObject(),
       store_name,
