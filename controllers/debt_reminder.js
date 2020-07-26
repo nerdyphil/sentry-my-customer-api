@@ -287,7 +287,7 @@ exports.send = async (req, res) => {
         Message: "Invalid Phone Number",
       });
     }
-    debt.status = "send";
+    debt.status = "sent";
     await debt.save();
     return res.status(200).json({
       success: true,
