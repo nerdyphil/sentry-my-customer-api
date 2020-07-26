@@ -1,5 +1,6 @@
 const Transaction = require("../models/transaction");
 const Debts = require("../models/debt_reminders");
+const _ = require("lodash");
 
 module.exports = {
   getDebts: (params) => {
@@ -37,5 +38,44 @@ module.exports = {
       ];
     }, []);
     return transactions;
+  },
+  getOneTransaction: async (params) => {
+    const s = await Transaction.findOne(params)
+      .populate({ path: "store_ref_id customer_ref_id" })
+      .exec();
+    if (!s) return s;
+    const transaction = s.toObject();
+    if (!transaction.store_ref_id || !transaction.customer_ref_id) return null;
+    const debts = await module.exports.getDebts({
+      trans_ref_id: transaction._id,
+    });
+    const { store_name, _id: store_id } = transaction.store_ref_id;
+    const { _id } = transaction.customer_ref_id;
+    return {
+      ...transaction,
+      store_name,
+      store_id,
+      store_ref: transaction.store_ref_id,
+      store_ref_id: store_id,
+      customer_ref_id: _id,
+      customer_ref: transaction.customer_ref_id,
+      debts,
+    };
+  },
+  deleteOneTransaction: async (params) => {
+    const s = await Transaction.findOne(params);
+    await Debts.deleteMany({
+      trans_ref_id: s._id,
+    });
+    if (!s) return s;
+    await s.remove();
+    return true;
+  },
+  updateOneTransaction: async (params, update) => {
+    let transaction = await Transaction.findOne(params);
+    if (!transaction) return transaction;
+    _.merge(transaction, update);
+    await transaction.save();
+    return module.exports.getOneTransaction({ _id: transaction._id });
   },
 };

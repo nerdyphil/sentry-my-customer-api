@@ -220,23 +220,18 @@ exports.findAllAdmin = async (req, res) => {
 };
 
 // Find a single transaction with a transaction_id
-exports.findOne = (passOnReq = false) => async (req, res, next) => {
+exports.findOne = async (req, res, next) => {
   try {
     let transaction;
     if ((req.user.user_role = "super_admin")) {
-      transaction = await Transaction.findOne({
+      transaction = await transactionService.getOneTransaction({
         _id: req.params.transaction_id,
-      })
-        .populate({ path: "store_ref_id" })
-        .populate({ path: "customer_ref_id" })
-        .exec();
+      });
     } else {
-      transaction = await Transaction.findOne({
+      transaction = await transactionService.getOneTransaction({
         _id: req.params.transaction_id,
         store_admin_ref: req.user.store_admin_ref,
-      })
-        .populate({ path: "store_ref_id" })
-        .exec();
+      });
     }
     if (!transaction) {
       return res.status(404).json({
@@ -248,22 +243,11 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
         },
       });
     }
-    if (passOnReq) {
-      req.transaction = transaction;
-      return next();
-    }
-    const debts = await DebtReminders.find({
-      trans_ref_id: transaction._id,
-    });
-    const response = transaction.toObject()
     return res.status(200).json({
       success: true,
       message: "Transaction",
       data: {
-        transaction: {
-          ...response,
-          debts
-        },
+        transaction,
       },
     });
   } catch (error) {
@@ -274,20 +258,21 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
 // Update a transaction identified by the transaction_id in the request
 exports.update = async (req, res) => {
   try {
-    transaction = req.transaction;
-    transaction.amount = req.body.amount || transaction.amount;
-    transaction.interest = req.body.interest || transaction.interest;
-    transaction.total_amount =
-      req.body.total_amount || transaction.total_amount;
-    transaction.description = req.body.description || transaction.description;
-    transaction.type = req.body.type || transaction.type;
-    transaction.status =
-      typeof req.body.status !== "undefined"
-        ? req.body.status
-        : transaction.status;
-    transaction.expected_pay_date =
-      req.body.expected_pay_date || transaction.expected_pay_date;
-    transaction = await transaction.save();
+    const transaction = await transactionService.updateOneTransaction(
+      {
+        _id: req.params.transaction_id,
+      },
+      req.body
+    );
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction updated",
+        error: {
+          statusCode: 404,
+        },
+      });
+    }
     res.status(200).json({
       success: true,
       message: "Transaction updated",
@@ -303,12 +288,23 @@ exports.update = async (req, res) => {
 // Delete a transaction with the specified transaction_id in the request
 exports.delete = async (req, res) => {
   try {
-    await req.transaction.remove();
+    const transaction = await transactionService.deleteOneTransaction({
+      _id: req.params.transaction_id,
+    });
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "could not find transaction",
+        error: {
+          statusCode: 404,
+        },
+      });
+    }
     return res.status(200).json({
       success: true,
-      message: "Transactions",
+      message: "Deleted",
       data: {
-        transactions: req.transaction,
+        transaction: null,
       },
     });
   } catch (error) {
