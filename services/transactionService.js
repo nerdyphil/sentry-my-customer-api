@@ -15,9 +15,12 @@ module.exports = {
         const debts = await module.exports.getDebts({
           trans_ref_id: transaction._id,
         });
-        const { store_name = "not_set", _id: store_id = "not_set" } =
-          transaction.store_ref_id || {};
-        const { _id = "not_set" } = transaction.customer_ref_id || {};
+        const {
+          store_name = "not_set",
+          _id: store_id = transaction.store_ref_id,
+        } = transaction.store_ref_id || {};
+        const { _id = transaction.customer_ref_id } =
+          transaction.customer_ref_id || {};
         return {
           ...transaction,
           store_name,
