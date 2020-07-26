@@ -5,55 +5,7 @@ const Debts = require("../models/debt_reminders");
 const { body } = require("express-validator/check");
 const Customer = require("../models/customer");
 const { errorHandler } = require("./login_controler");
-const { storeService } = require("./stores");
-
-const transactionService = {
-  getDebts: (params) => {
-    return Debts.find(params);
-  },
-  getTransactions: async (params) => {
-    let transactions = await Transaction.find(params);
-    transactions = await Promise.all(
-      transactions.map(async (transaction) => {
-        transaction = transaction.toObject();
-        const debts = await transactionService.getDebts({
-          trans_ref_id: transaction._id,
-        });
-        return { ...transaction, debts };
-      })
-    );
-    return transactions;
-  },
-};
-
-const customerService = {
-  getCustomers: async (params) => {
-    let customers = await Customer.find(params);
-    customers = await Promise.all(
-      customers.map(async (customer) => {
-        customer = customer.toObject();
-        let transactions = await transactionService.getTransactions({
-          customer_ref_id: customer._id,
-        });
-        return { ...customer, transactions };
-      })
-    );
-    return customers;
-  },
-  getOneCustomer: async (params) => {
-    let customer = await Customer.findOne(params);
-    if (!customer) return customer;
-    return {
-      ...customer.toObject(),
-      transactions: await transactionService.getTransactions({
-        customer_ref_id: customer._id,
-      }),
-    };
-  },
-};
-
-exports.transactionService = transactionService;
-exports.customerService = customerService;
+const { customerService, storeService } = require("../services");
 
 exports.validate = (method) => {
   switch (method) {
@@ -123,11 +75,11 @@ exports.getById = async (req, res) => {
   try {
     let store;
     if (req.user.user_role === "super_admin") {
-      store = await StoreModel.findOne({
+      store = await storeService.getOneStore({
         _id: req.params.storeId,
       });
     } else {
-      store = await StoreModel.findOne({
+      store = await storeService.getOneStore({
         _id: req.params.storeId,
         $or: [{ store_admin_ref: req.user._id }, { _id: req.user.store_id }],
       });
