@@ -228,10 +228,11 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
         _id: req.params.transaction_id,
       })
         .populate({ path: "store_ref_id" })
+        .populate({ path: "customer_ref_id" })
         .exec();
     } else {
       transaction = await Transaction.findOne({
-        _id: req.params._id,
+        _id: req.params.transaction_id,
         store_admin_ref: req.user.store_admin_ref,
       })
         .populate({ path: "store_ref_id" })
@@ -251,15 +252,6 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
       req.transaction = transaction;
       return next();
     }
-    transaction = transaction.toObject();
-    transaction.store_name =
-      (transaction.store_ref_id && transaction.store_ref_id.store_name) ||
-      "Unknown";
-    transaction.store_ref_id =
-      (transaction.store_ref_id && transaction.store_ref_id._id) || "unknown";
-    transaction.debts = await DebtReminders.find({
-      trans_ref_id: transaction._id,
-    });
     return res.status(200).json({
       success: true,
       message: "Transaction",
