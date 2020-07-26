@@ -33,16 +33,17 @@ exports.getCustomer = async (req, res) => {
   try {
     const stores = await storeService.getAllStores({
       $or: [{ store_admin_ref: req.user._id }, { _id: req.user.store_id }],
-    });
+    }); // This returns array of stores [[{...storedata}]]
+
     const data = stores.reduce((acc, cur) => {
       return {
         ...acc,
         ...cur[0].customers.reduce(
-          (ac, cu) => ({ ...ac, [cu.name]: cu.phone_number }),
+          (ac, cu) => ({ ...ac, [cu.name]: cu.phone_number }), // returns object with names as keys and phone as values
           {}
-        ),
-      };
-    }, {});
+        ), //  This loops through the customers of a store
+      }; //  returns an object of spread customers
+    }, {}); // This loops over said array exposing another array.
     return res.status(200).json({
       success: true,
       data,
