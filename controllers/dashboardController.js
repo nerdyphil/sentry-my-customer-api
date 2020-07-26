@@ -203,9 +203,9 @@ exports.storeAdminDashboard = async (req, res, next) => {
       return acc;
     }, 0);
     data.revenueAmount = parseInt(
-      data.debtCount.reduce((acc, cur) => {
-        if (!cur.debt.status) return acc;
-        return acc + parseFloat(cur.debt.amount) || 0;
+      data.transactions.reduce((acc, cur) => {
+        if (cur.transaction.status == true || cur.transaction.type == 'paid') return acc + parseFloat(cur.debt.amount) || 0;
+        return acc;
       }, 0)
     );
     data.receivablesCount = data.transactions.reduce((acc, cur) => {
