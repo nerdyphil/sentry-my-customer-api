@@ -54,6 +54,10 @@ const loginAssistant = async ({ identifier, password }, res) => {
       user_role: assistant.user_role,
       _id: assistant._id,
     });
+    if (!assistant.first_name || !assistant.last_name) {
+      assistant.first_name = "Not"
+      assistant.last_name = "Set"
+    }
     assistant.api_token = apiToken;
     assistant = await assistant.save();
     return res.status(200).json({
