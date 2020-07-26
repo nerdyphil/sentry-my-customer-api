@@ -49,6 +49,22 @@ const util = {
 
     return 0;
   },
+
+  getTransactionForMonth: (obj, data) => {
+    try {
+      const transactionDate = new Date(obj.transaction.transaction.createdAt);
+      const currentDate = new Date();
+      if (currentDate.getFullYear() == transactionDate.getFullYear()) {
+        data[transactionDate.getMonth()] += parseFloat(
+          obj.transaction.transaction.amount
+        );
+      }
+    } catch (error) {
+      data[0] += 0;
+    }
+
+    return data;
+  },
 };
 
 exports.storeAdminDashboard = async (req, res, next) => {
@@ -72,6 +88,7 @@ exports.storeAdminDashboard = async (req, res, next) => {
 
   try {
     const data = {};
+    data.chart = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     const stores = await Stores.find({ store_admin_ref: req.user._id });
 
     //get number of stores
@@ -119,6 +136,13 @@ exports.storeAdminDashboard = async (req, res, next) => {
         },
       ];
     }, []);
+    //here we get the data that will be used in the transaction overview chart
+    data.transactions.forEach((transaction) => {
+      let obj = {
+        transaction: transaction,
+      };
+      data.chart = util.getTransactionForMonth(obj, data.chart);
+    });
     data.recentTransactions = data.transactions
       .sort(util.compareRecentTransactions)
       .slice(0, 15);
