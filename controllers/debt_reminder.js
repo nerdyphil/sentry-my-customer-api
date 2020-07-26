@@ -12,6 +12,7 @@ const africastalking = require("africastalking")({
   username: process.env.AFRICASTALKING_USERNAME,
 });
 const { errorHandler } = require("./login_controler");
+const { transactionService } = require("../services");
 
 exports.validate = (method) => {
   switch (method) {
@@ -35,11 +36,14 @@ exports.getAll = async (req, res) => {
   try {
     let debts;
     if (req.user.user_role === "super_admin") {
-      debts = await Transaction.find({ type: "debt" });
+      debts = await transactionService.getTransactions({ type: "debt" });
     } else {
-      debts = await Transaction.find({
+      debts = await transactionService.getTransactions({
         type: "debt",
-        store_admin_id: req.user.store_admin_id,
+        $or: [
+          { store_admin_ref: req.user._id },
+          { store_ref_id: req.user.store_id },
+        ],
       });
     }
     return res.status(200).json({
@@ -60,7 +64,7 @@ exports.getStoreDebt = async (req, res) => {
   try {
     let debts;
     if (req.user.user_role === "super_admin") {
-      debts = await Transaction.find({
+      debts = await transactionService.getTransactions({
         type: "debt",
         store_ref_id: req.params.storeId,
       });
@@ -68,7 +72,10 @@ exports.getStoreDebt = async (req, res) => {
       debts = await Transaction.find({
         type: "debt",
         store_ref_id: req.params.storeId,
-        $or: [{ store_admin_id: req.user._id }, { assistant: req.user._id }],
+        $or: [
+          { store_admin_ref: req.user._id },
+          { store_ref_id: req.user.store_id },
+        ],
       });
     }
 
