@@ -366,7 +366,7 @@ exports.storeAssistantDashboard = async (req, res) => {
     }
     data.user = store_assistant;
     const assistantStore_id = store_assistant.store_id;
-    const assistantStore = await Stores.find({ _id: assistantStore_id });
+    const assistantStore = await Stores.findOne({ _id: assistantStore_id });
     data.storeName = assistantStore.store_name;
     data.storeAddress = assistantStore.shop_address;
     data.customerCount = 0;
@@ -465,12 +465,9 @@ exports.storeAssistantDashboard = async (req, res) => {
       .slice(0, 15);
     return res.status(200).json({
       success: true,
+      status: 200,
       message: "Assistant dashboard data.",
-      data: {
-        status: 200,
-        message: "Assistant dashboard data.",
-        data: data,
-      },
+      data,
     });
   } catch (error) {
     res.status(500).send({

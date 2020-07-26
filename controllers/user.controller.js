@@ -246,7 +246,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
     }
     data.user = store_assistant;
     const assistantStore_id = store_assistant.store_id;
-    const assistantStore = await Store.find({ _id: assistantStore_id });
+    const assistantStore = await Store.findOne({ _id: assistantStore_id });
     data.storeName = assistantStore.store_name;
     data.storeAddress = assistantStore.shop_address;
     data.customerCount = 0;
@@ -345,12 +345,9 @@ exports.getSingleStoreAssistant = async (req, res) => {
       .slice(0, 15);
     return res.status(200).json({
       success: true,
+      status: 200,
       message: "Store Assistant data.",
-      data: {
-        status: 200,
-        message: "Store Assistant data.",
-        data: data,
-      },
+      data,
     });
   } catch (error) {
     errorHandler(error, res);
