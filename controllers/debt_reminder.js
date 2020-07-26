@@ -276,15 +276,27 @@ exports.send = async (req, res) => {
     });
     await debt.save();
     const sms = africastalking.SMS;
-    const response = await sms.send({
-      to,
-      message: message,
-      enque: true,
-    });
-    if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
+    try {
+      const response = await sms.send({
+        to,
+        message: message,
+        enque: true,
+      });
+      if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
+        return res.status(200).json({
+          success: false,
+          Message: "Invalid Phone Number",
+        });
+      }
+    } catch (error) {
+      const Message =
+        typeof error === "string" ? error : "Could not send reminder";
       return res.status(200).json({
-        success: false,
-        Message: "Invalid Phone Number",
+        success: true, // This should be false. Only made it true so fe sees the error message
+        Message,
+        error: {
+          statusCode: 500,
+        },
       });
     }
     debt.status = "send";
