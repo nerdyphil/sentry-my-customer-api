@@ -5,6 +5,7 @@ const { body } = require("express-validator/check");
 const UserModel = require("../models/store_admin");
 const AssistantModel = require("../models/storeAssistant");
 const CustomerModel = require("../models/customer");
+const StoreModel = require("../models/store");
 
 exports.validate = (method) => {
   switch (method) {
@@ -62,7 +63,9 @@ const loginAssistant = async ({ identifier, password }, res) => {
         statusCode: 200,
         message: "Store Assistant logged in successfully.",
         user: {
-          ...assistant.toObject(),
+          local: assistant,
+          _id: assistant._id,
+          stores: [await StoreModel.findOne({ _id: assistant.store_id })],
           api_token: apiToken,
         },
       },
@@ -99,13 +102,7 @@ module.exports.loginUser = async (req, res) => {
         },
       });
     }
-    return res.status(401).json({
-      success: false,
-      message: "invalid credentials",
-      error: {
-        statusCode: 401,
-      },
-    });
+    await loginAssistant({ identifier, password }, res)
   } catch (error) {
     module.exports.errorHandler(error, res);
   }
