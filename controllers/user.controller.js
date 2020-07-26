@@ -1,6 +1,8 @@
 const User = require("../models/store_admin");
 const StoreAssistant = require("../models/storeAssistant");
 const Store = require("../models/store");
+const customersModel = require("../models/customer");
+const transactionsModel = require("../models/transaction");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator/check");
@@ -42,6 +44,66 @@ exports.validate = (method) => {
   }
 };
 
+const util = {
+  //utility functions
+  compareTransactions: (a, b) => {
+    //compares two time stamps and places the earlier timestamp before the other
+    if (a.createdAt.getTime() > b.createdAt.getTime()) return -1;
+    if (b.createdAt.getTime() < a.createdAt.getTime()) return 1;
+
+    return 0;
+  },
+
+  compareCustomers: (a, b) => {
+    //compares two time stamps and places the earlier timestamp before the other
+    if (
+      a.transactions[0].createdAt.getTime() >
+      b.transactions[0].createdAt.getTime()
+    )
+      return -1;
+    if (
+      b.transactions[0].createdAt.getTime() <
+      a.transactions[0].createdAt.getTime()
+    )
+      return 1;
+
+    return 0;
+  },
+
+  compareRecentTransactions: (a, b) => {
+    //compares two time stamps and places the earlier timestamp before the other
+    if (a.transaction.createdAt.getTime() > b.transaction.createdAt.getTime())
+      return -1;
+    if (b.transaction.createdAt.getTime() < a.transaction.createdAt.getTime())
+      return 1;
+
+    return 0;
+  },
+
+  compareRecentDebts: (a, b) => {
+    //compares two time stamps and places the earlier timestamp before the other
+    if (a.debt.createdAt.getTime() > b.debt.createdAt.getTime()) return -1;
+    if (b.debt.createdAt.getTime() < a.debt.createdAt.getTime()) return 1;
+
+    return 0;
+  },
+
+  getTransactionForMonth: (obj, data) => {
+    try {
+      const transactionDate = new Date(obj.transaction.transaction.createdAt);
+      const currentDate = new Date();
+      if (currentDate.getFullYear() == transactionDate.getFullYear()) {
+        data[transactionDate.getMonth()] += parseFloat(
+          obj.transaction.transaction.amount
+        );
+      }
+    } catch (error) {
+      data[0] += 0;
+    }
+
+    return data;
+  },
+};
 // Get all Users.
 exports.allStoreAssistant = async (req, res) => {
   try {
@@ -166,6 +228,7 @@ exports.newStoreAssistant = async (req, res) => {
 
 // Get Single Store Assistant with assistant_id.
 exports.getSingleStoreAssistant = async (req, res) => {
+  const data = {};
   try {
     const store_assistant = await StoreAssistant.findOne({
       _id: req.params.assistant_id,
@@ -181,13 +244,113 @@ exports.getSingleStoreAssistant = async (req, res) => {
         },
       });
     }
+    data.user = store_assistant;
+    const assistantStore_id = store_assistant.store_id;
+    const assistantStore = await Store.find({ _id: assistantStore_id });
+    data.storeName = assistantStore.store_name;
+    data.storeAddress = assistantStore.shop_address;
+    data.customerCount = 0;
+    data.transactionCount = 0;
+    data.recentTransactions = [];
+    data.chart = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    data.debtCount = 0;
+    data.debtAmount = 0;
+    data.revenueCount = 0;
+    data.revenueAmount = 0;
+    data.recievablesAmount = 0;
+    data.amountForCurrentMonth = 0;
+    data.amountForPreviousMonth = 0;
+    const assistantstore_customers = await customersModel.find({
+      store_ref_id: assistantStore_id,
+    });
+    assistantstore_customers.forEach(async (customer) => {
+      console.log(customer);
+      data.customerCount += 1;
+      customerTransactions = await transactionsModel
+        .find({
+          customer_ref_id: customer._id,
+        })
+        .populate({ path: "store_ref_id" })
+        .exec();
+      customerTransactions.forEach((transaction) => {
+        if (transaction.assistant_inCharge == store_assistant._id) {
+          data.transactionCount += 1;
+          let obj = {};
+          obj.customerName = customer.name;
+          obj.storeName = assistantStore.store_name;
+          obj.transaction = transaction;
+          obj.recentTransactions.push(obj);
+
+          data.chart = util.getTransactionForMonth(obj, data.chart);
+
+          if (
+            transaction.type.toLowerCase() == "debt" &&
+            transaction.status == false
+          ) {
+            data.debtCount += 1;
+            try {
+              data.debtAmount += parseFloat(transaction.amount);
+            } catch (error) {
+              data.debtAmount += 0;
+            }
+          }
+          if (
+            transaction.type.toLowercade() == "debt" &&
+            transaction.status == true
+          ) {
+            data.revenueCount + 1;
+            try {
+              data.revenueAmount += parseFloat(transaction.amount);
+            } catch (error) {
+              data.revenueAmount += 0;
+            }
+            let date = new Date();
+            let transactionDate = new Date(transaction.createdAt);
+            //get revenue for current month
+            if (
+              date.getMonth() == transactionDate.getMonth() &&
+              date.getFullYear() == transactionDate.getFullYear()
+            ) {
+              try {
+                data.amountForCurrentMonth += parseFloat(transaction.amount);
+              } catch (error) {
+                data.amountForCurrentMonth += 0;
+              }
+            }
+            //get revenue for previous month
+            if (
+              date.getMonth() - 1 == transactionDate.getMonth() &&
+              date.getFullYear() == transactionDate.getFullYear()
+            ) {
+              try {
+                data.amountForPreviousMonth += parseFloat(transaction.amount);
+              } catch (error) {
+                data.amountForPreviousMonth += 0;
+              }
+            }
+          }
+          if (transaction.type.toLowerCase() == "receivables") {
+            data.receivablesCount += 1;
+            try {
+              data.receivablesAmount += parseFloat(transaction.amount);
+            } catch (error) {
+              data.receivablesAmount += 0;
+            }
+          }
+        }
+      });
+    });
+    //sort transactions by time
+    data.recentTransactions = data.recentTransactions
+      .sort(util.compareRecentTransactions)
+      .slice(0, 15);
     return res.status(200).json({
       success: true,
-      message: "Store Assistant retrieved successfully.",
+      message: "Store Assistant data.",
       data: {
         status: 200,
-        message: "Store Assistant retrieved successfully.",
-        store_assistant,
+        message: "Store Assistant data.",
+        data: data,
       },
     });
   } catch (error) {
