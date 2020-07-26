@@ -49,7 +49,7 @@ const loginAssistant = async ({ identifier, password }, res) => {
   if (assistant && (await bCrypt.compare(password, assistant.password))) {
     const apiToken = module.exports.signToken({
       phone_number: assistant.phone_number,
-      password: password,
+      // password: password,
       user_role: assistant.user_role,
       _id: assistant._id,
     });
@@ -84,7 +84,7 @@ module.exports.loginUser = async (req, res) => {
     if (user && (await bCrypt.compare(password, user.local.password))) {
       const apiToken = module.exports.signToken({
         phone_number: user.identifier,
-        password: user.local.password,
+        // password: user.local.password,
         user_role: user.local.user_role,
         _id: user._id,
       });
