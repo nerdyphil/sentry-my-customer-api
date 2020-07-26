@@ -264,7 +264,6 @@ exports.getSingleStoreAssistant = async (req, res) => {
       store_ref_id: assistantStore_id,
     });
     assistantstore_customers.forEach(async (customer) => {
-      console.log(customer);
       data.customerCount += 1;
       customerTransactions = await transactionsModel
         .find({
