@@ -1,8 +1,11 @@
 const UserModel = require("../models/store_admin");
 const StoreModel = require("../models/store");
+const Transaction = require("../models/transaction");
+const Debts = require("../models/debt_reminders");
 const { body } = require("express-validator/check");
 const Customer = require("../models/customer");
 const { errorHandler } = require("./login_controler");
+const { customerService, storeService } = require("../services");
 
 exports.validate = (method) => {
   switch (method) {
@@ -70,10 +73,17 @@ exports.create = async (req, res) => {
 
 exports.getById = async (req, res) => {
   try {
-    let store = await StoreModel.findOne({
-      _id: req.params.storeId,
-      store_admin_ref: req.user.store_admin_ref,
-    });
+    let store;
+    if (req.user.user_role === "super_admin") {
+      store = await storeService.getOneStore({
+        _id: req.params.storeId,
+      });
+    } else {
+      store = await storeService.getOneStore({
+        _id: req.params.storeId,
+        $or: [{ store_admin_ref: req.user._id }, { _id: req.user.store_id }],
+      });
+    }
     if (!store) {
       return res.status(404).json({
         status: false,
@@ -84,7 +94,7 @@ exports.getById = async (req, res) => {
         },
       });
     }
-    let customer = await Customer.findOne({
+    let customer = await customerService.getOneCustomer({
       store_ref_id: store._id,
       _id: req.params.customerId,
     });
@@ -227,5 +237,28 @@ exports.getAll = async (req, res) => {
     });
   } catch (error) {
     return errorHandler(error, res);
+  }
+};
+
+exports.allCustomers = async (req, res) => {
+  let role = req.user.user_role;
+  try {
+    if (role !== "super_admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorised! Only Super Admin can Update Complaint!",
+      });
+    }
+    let customers = await customerService.getCustomers({});
+    return res.status(200).json({
+      success: true,
+      message: "Operation successful",
+      data: {
+        statusCode: 200,
+        customers,
+      },
+    });
+  } catch (err) {
+    return errorHandler(err, res);
   }
 };

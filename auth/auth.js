@@ -58,6 +58,7 @@ const verifyToken = (req, res, next) => {
           });
         }
         req.user.store_admin_ref = user.store_admin_ref;
+        req.user.store_id = user.store_id;
       } catch (error) {
         return require("../controllers/login_controler").errorHandler(
           error,

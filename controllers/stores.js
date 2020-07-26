@@ -1,8 +1,11 @@
 const Store = require("./../models/store");
 const UserModel = require("../models/store_admin");
 const CustomerModel = require("../models/customer");
-const { errorHandler } = require("./login_controler");
+const Assistants = require("../models/storeAssistant");
 const TransactionModel = require("../models/transaction");
+
+const { errorHandler } = require("./login_controler");
+const { storeService } = require("../services");
 
 exports.createStore = async (req, res) => {
   if (req.body.store_name === "" || req.body.shop_address === "") {
@@ -27,81 +30,17 @@ exports.createStore = async (req, res) => {
   }
 };
 
-exports.getAll = async (req, res) => {
-  const id = req.user.phone_number;
-  try {
-    const User = await UserModel.findOne({ identifier: id });
-    if (!User) {
-      return res.status(404).json({
-        success: false,
-        message: "could not User",
-        error: {
-          statusCode: 404,
-          message: "Could not find User",
-        },
-      });
-    } else {
-      if (User.local.user_role !== "super_admin") {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorised, resource can only accessed by Super Admin",
-          error: {
-            statusCode: 401,
-            message: "Unauthorised, resource can only accessed by Super Admin",
-          },
-        });
-      } else {
-        let stores = await Store.find({}).populate({
-          path: "store_admin_ref",
-          select: "-local.password -identifier -google -facebook -api_token",
-        });
-        stores = Object.values(
-          stores.reduce((acc, cur) => {
-            if (acc[cur.store_admin_ref._id])
-              return {
-                ...acc,
-                [cur.store_admin_ref._id]: [
-                  ...acc[cur.store_admin_ref._id],
-                  cur,
-                ],
-              };
-            return { ...acc, [cur.store_admin_ref._id]: [cur] };
-          }, {})
-        );
-
-        res.status(200).json({
-          success: true,
-          result: stores.length,
-          message: "Here are all your stores Super Admin",
-          data: {
-            statusCode: 200,
-            stores,
-          },
-        });
-      }
-    }
-  } catch (error) {
-    errorHandler(error, res);
-  }
-};
-
 exports.getAllStores = async (req, res) => {
   //current user's id to find user
   try {
     let stores;
     if (req.user.user_role === "super_admin") {
-      stores = await Store.find();
+      stores = await storeService.getAllStores({});
     } else {
-      stores = await Store.find({
+      stores = (await storeService.getAllStores({
         store_admin_ref: req.user.store_admin_ref,
-      });
+      })).map(elem => elem[0]);
     }
-    stores = await Promise.all(
-      stores.map(async (elem) => {
-        let customers = await CustomerModel.find({ store_ref_id: elem._id });
-        return { ...elem.toObject(), customers };
-      })
-    );
     res.status(200).json({
       success: true,
       result: stores.length,
@@ -140,7 +79,8 @@ exports.getStore = async (req, res) => {
         return { ...customer.toObject(), transactions };
       })
     );
-    store = { tagline: "Not Set", ...store.toObject(), customers };
+    let assistants = await Assistants.find({ store_ref_id: store._id });
+    store = { tagline: "Not Set", ...store.toObject(), customers, assistants };
     return res.status(200).json({
       success: true,
       message: "Operation successful",

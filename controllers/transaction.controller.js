@@ -6,7 +6,7 @@ const Customer = require("../models/customer");
 const { body } = require("express-validator/check");
 const { errorHandler } = require("./login_controler");
 
-exports.validate = (method) => {
+exports.validate = method => {
   switch (method) {
     case "create": {
       return [
@@ -18,7 +18,7 @@ exports.validate = (method) => {
         body("description").optional().isString(),
         body("type").isString(),
         body("status").optional().isBoolean(),
-        body("expected_pay_date").optional().isISO8601(),
+        body("expected_pay_date").optional().isISO8601()
       ];
     }
     case "update": {
@@ -31,7 +31,7 @@ exports.validate = (method) => {
         body("description").optional().isString(),
         body("type").optional().isString(),
         body("status").optional().isBoolean(),
-        body("expected_pay_date").optional().isISO8601(),
+        body("expected_pay_date").optional().isISO8601()
       ];
     }
   }
@@ -42,7 +42,7 @@ exports.create = async (req, res) => {
   try {
     let store = await StoreModel.findOne({
       _id: req.body.store_id,
-      store_admin_ref: req.user.store_admin_ref,
+      store_admin_ref: req.user.store_admin_ref
     });
     if (!store) {
       return res.status(404).json({
@@ -50,13 +50,13 @@ exports.create = async (req, res) => {
         message: "Store not found",
         data: {
           statusCode: 404,
-          message: "Store not found",
-        },
+          message: "Store not found"
+        }
       });
     }
     let customer = await Customer.findOne({
       _id: req.body.customer_id,
-      store_ref_id: store._id,
+      store_ref_id: store._id
     });
     if (!customer) {
       return res.status(404).json({
@@ -64,8 +64,8 @@ exports.create = async (req, res) => {
         message: "Customer not found",
         data: {
           statusCode: 404,
-          message: "Customer not found",
-        },
+          message: "Customer not found"
+        }
       });
     }
     const trans = await Transaction.create({
@@ -80,14 +80,14 @@ exports.create = async (req, res) => {
       description: req.body.description || "Not set",
       type: req.body.type,
       status: req.body.status || false,
-      expected_pay_date: req.body.expected_pay_date || null,
+      expected_pay_date: req.body.expected_pay_date || null
     });
     return res.status(200).json({
       success: true,
       message: "Transaction saved",
       data: {
-        transaction: trans,
-      },
+        transaction: trans
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -102,13 +102,13 @@ exports.findAll = async (req, res) => {
       $or: [
         {
           identifier: req.user.phone_number,
-          "local.user_role": req.user.user_role,
+          "local.user_role": req.user.user_role
         },
         {
           "assistants.phone_number": req.user.phone_number,
-          "assistants.user_role": req.user.user_role,
-        },
-      ],
+          "assistants.user_role": req.user.user_role
+        }
+      ]
     });
     if (!user) {
       return res.status(404).json({
@@ -116,25 +116,25 @@ exports.findAll = async (req, res) => {
         message: "User not found",
         data: {
           statusCode: 404,
-          message: "User not found",
-        },
+          message: "User not found"
+        }
       });
     }
 
-    const store = user.stores.find((store) => store._id == req.params.store_id);
+    const store = user.stores.find(store => store._id == req.params.store_id);
     if (!store) {
       return res.status(404).json({
         success: false,
         message: "Store not found",
         data: {
           statusCode: 404,
-          message: "Store not found",
-        },
+          message: "Store not found"
+        }
       });
     }
 
     const customer = store.customers.find(
-      (customer) => customer._id == req.params.customer_id
+      customer => customer._id == req.params.customer_id
     );
     if (!customer) {
       return res.status(404).json({
@@ -142,8 +142,8 @@ exports.findAll = async (req, res) => {
         message: "Customer not found",
         data: {
           statusCode: 404,
-          message: "Customer not found",
-        },
+          message: "Customer not found"
+        }
       });
     }
 
@@ -151,8 +151,8 @@ exports.findAll = async (req, res) => {
       success: true,
       message: "Transactions",
       data: {
-        transactions: customer.transactions,
-      },
+        transactions: customer.transactions
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -160,8 +160,8 @@ exports.findAll = async (req, res) => {
       message: "Something went wrong",
       data: {
         statusCode: 500,
-        message: error,
-      },
+        message: error
+      }
     });
   }
 };
@@ -171,16 +171,16 @@ exports.findAllStore = async (req, res) => {
     let transactions = await Transaction.find({
       $or: [
         { assistant_inCharge: req.user._id },
-        { store_admin_ref: req.user._id },
-      ],
+        { store_admin_ref: req.user._id }
+      ]
     });
     return res.status(200).json({
       success: true,
       message: "Transactions",
       data: {
         statusCode: 200,
-        transactions,
-      },
+        transactions
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -195,18 +195,21 @@ exports.findAllAdmin = async (req, res) => {
         success: false,
         message: "not enough permissions",
         data: {
-          statusCode: 401,
-        },
+          statusCode: 401
+        }
       });
     }
-    const transactions = await Transaction.find({});
+    const transactions = await Transaction.find({})
+      .populate({ path: "store_ref_id" })
+      .populate({ path: "customer_ref_id" })
+      .populate({ path: "store_admin_ref" });
 
     res.status(200).json({
       success: true,
       message: "Transactions",
       data: {
-        transactions,
-      },
+        transactions
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -219,14 +222,14 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
     let transaction;
     if ((req.user.user_role = "super_admin")) {
       transaction = await Transaction.findOne({
-        _id: req.params.transaction_id,
+        _id: req.params.transaction_id
       })
         .populate({ path: "store_ref_id" })
         .exec();
     } else {
       transaction = await Transaction.findOne({
         _id: req.params._id,
-        store_admin_ref: req.user.store_admin_ref,
+        store_admin_ref: req.user.store_admin_ref
       })
         .populate({ path: "store_ref_id" })
         .exec();
@@ -237,8 +240,8 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
         message: "Transaction not found",
         data: {
           statusCode: 404,
-          message: "Transaction not found",
-        },
+          message: "Transaction not found"
+        }
       });
     }
     if (passOnReq) {
@@ -252,14 +255,14 @@ exports.findOne = (passOnReq = false) => async (req, res, next) => {
     transaction.store_ref_id =
       (transaction.store_ref_id && transaction.store_ref_id._id) || "unknown";
     transaction.debts = await DebtReminders.find({
-      trans_ref_id: transaction._id,
+      trans_ref_id: transaction._id
     });
     return res.status(200).json({
       success: true,
       message: "Transaction",
       data: {
-        transaction,
-      },
+        transaction
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -287,8 +290,8 @@ exports.update = async (req, res) => {
       success: true,
       message: "Transaction updated",
       data: {
-        transaction,
-      },
+        transaction
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -303,8 +306,8 @@ exports.delete = async (req, res) => {
       success: true,
       message: "Transactions",
       data: {
-        transactions: req.transaction,
-      },
+        transactions: req.transaction
+      }
     });
   } catch (error) {
     errorHandler(error, res);
