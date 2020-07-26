@@ -99,7 +99,13 @@ module.exports.loginUser = async (req, res) => {
         },
       });
     }
-    await loginAssistant({ identifier, password }, res);
+    return res.status(401).json({
+      success: false,
+      message: "invalid credentials",
+      error: {
+        statusCode: 401,
+      },
+    });
   } catch (error) {
     module.exports.errorHandler(error, res);
   }
