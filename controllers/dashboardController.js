@@ -147,11 +147,13 @@ exports.storeAdminDashboard = async (req, res, next) => {
       .sort(util.compareRecentTransactions)
       .slice(0, 15);
     data.recentDebts = (
-      await transactionModel.find({
-        store_admin_ref: req.user._id,
-        type: "debt",
-      }).populate({ path: "store_ref_id" })
-      .exec()
+      await transactionModel
+        .find({
+          store_admin_ref: req.user._id,
+          type: "debt",
+        })
+        .populate({ path: "store_ref_id" })
+        .exec()
     )
       .reduce((acc, cur) => {
         if (!cur) return acc;
@@ -188,18 +190,16 @@ exports.storeAdminDashboard = async (req, res, next) => {
       ];
     }, []);
     data.debtAmount = parseInt(
-      data.debtCount.reduce(
-        (acc, cur) =>{ 
-          if (cur.debt.status == true) {
-            return acc
-          }
-          return acc + parseFloat(cur.debt.amount) || 0
-        },
-        0
-      )
+      data.debtCount.reduce((acc, cur) => {
+        if (cur.debt.status == true) {
+          return acc;
+        }
+        return acc + parseFloat(cur.debt.amount) || 0;
+      }, 0)
     );
     data.revenueCount = data.transactions.reduce((acc, cur) => {
-      if (cur.transaction.status == true || cur.transaction.type == 'paid') return acc + 1;
+      if (cur.transaction.status == true || cur.transaction.type == "paid")
+        return acc + 1;
       return acc;
     }, 0);
     data.revenueAmount = parseInt(
@@ -347,69 +347,65 @@ exports.superAdminDashboard = async (req, res) => {
 };
 
 exports.storeAssistantDashboard = async (req, res) => {
-  const phone_number = req.user.phone_number;
   const data = {};
-  const assistant = await storeAssistantModel.findOne({
-    phone_number: phone_number,
-  });
-  const storeAdmin = await storeAdminModel.findOne({
-    _id: assistant.store_admin_ref,
-  });
-  if (!storeAdmin) {
-    return res.status(404).json({
-      success: false,
-      message: "Store Admin not found",
-      error: {
-        statusCode: 404,
-        message: "Store Admin not found",
-      },
-    });
-  }
   try {
-    data.name = assistant.name;
-    data.email = assistant.email;
-    data.phone_number = assistant.phone_number;
-
-    const store_id = assistant.store_id;
-    if (!store_id) {
+    const store_assistant = await storeAssistantModel
+      .findOne({
+        _id: req.user._id,
+      })
+      .select("-password")
+      .exec();
+    if (!store_assistant) {
       return res.status(404).json({
         success: false,
-        message: "Assistant does not belong to a store",
+        message: "cannot find assistant",
         error: {
-          statusCode: "",
-          message: "Assistant does not belong to a store",
+          statusCode: 404,
         },
       });
     }
-    const assistantStore = await Stores.find({ _id: store_id });
-    const customers = await customerModel.find({ store_ref_id: store_id });
+    data.user = store_assistant;
+    const assistantStore_id = store_assistant.store_id;
+    const assistantStore = await Stores.findOne({ _id: assistantStore_id });
     data.storeName = assistantStore.store_name;
     data.storeAddress = assistantStore.shop_address;
     data.customerCount = 0;
     data.transactionCount = 0;
     data.recentTransactions = [];
+    data.chart = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     data.debtCount = 0;
     data.debtAmount = 0;
     data.revenueCount = 0;
     data.revenueAmount = 0;
-    data.receivablesCount = 0;
     data.receivablesAmount = 0;
-    customers.forEach(async (customer) => {
+    data.amountForCurrentMonth = 0;
+    data.amountForPreviousMonth = 0;
+    const assistantstore_customers = await customerModel.find({
+      store_ref_id: assistantStore_id,
+    });
+    assistantstore_customers.forEach(async (customer) => {
       data.customerCount += 1;
-      const transactions = await transactionModel.find({
-        customer_ref_id: customer._id,
-      });
-      transactions.forEach((transaction) => {
-        if (transaction.assistant_inCharge == assistant._id) {
+      customerTransactions = await transactionModel
+        .find({
+          customer_ref_id: customer._id,
+        })
+        .populate({ path: "store_ref_id" })
+        .exec();
+      customerTransactions.forEach((transaction) => {
+        if (transaction.assistant_inCharge == store_assistant._id) {
           data.transactionCount += 1;
-
           let obj = {};
           obj.customerName = customer.name;
           obj.storeName = assistantStore.store_name;
           obj.transaction = transaction;
-          data.recentTransactions.push(obj);
+          obj.recentTransactions.push(obj);
 
-          if (transaction.type.toLowerCase() == "debt") {
+          data.chart = util.getTransactionForMonth(obj, data.chart);
+
+          if (
+            transaction.type.toLowerCase() == "debt" &&
+            transaction.status == false
+          ) {
             data.debtCount += 1;
             try {
               data.debtAmount += parseFloat(transaction.amount);
@@ -418,22 +414,38 @@ exports.storeAssistantDashboard = async (req, res) => {
             }
           }
           if (
-            transaction.type.toLowerCase() == "debt" &&
+            transaction.type.toLowercade() == "debt" &&
             transaction.status == true
           ) {
-            data.revenueCount += 1;
+            data.revenueCount + 1;
             try {
               data.revenueAmount += parseFloat(transaction.amount);
             } catch (error) {
               data.revenueAmount += 0;
             }
-          }
-          if (transaction.type.toLowerCase() == "paid") {
-            data.revenueCount += 1;
-            try {
-              data.revenueAmount += parseFloat(transaction.amount);
-            } catch (error) {
-              data.revenueAmount += 0;
+            let date = new Date();
+            let transactionDate = new Date(transaction.createdAt);
+            //get revenue for current month
+            if (
+              date.getMonth() == transactionDate.getMonth() &&
+              date.getFullYear() == transactionDate.getFullYear()
+            ) {
+              try {
+                data.amountForCurrentMonth += parseFloat(transaction.amount);
+              } catch (error) {
+                data.amountForCurrentMonth += 0;
+              }
+            }
+            //get revenue for previous month
+            if (
+              date.getMonth() - 1 == transactionDate.getMonth() &&
+              date.getFullYear() == transactionDate.getFullYear()
+            ) {
+              try {
+                data.amountForPreviousMonth += parseFloat(transaction.amount);
+              } catch (error) {
+                data.amountForPreviousMonth += 0;
+              }
             }
           }
           if (transaction.type.toLowerCase() == "receivables") {
@@ -448,12 +460,14 @@ exports.storeAssistantDashboard = async (req, res) => {
       });
     });
     //sort transactions by time
-    data.recentTransactions.sort(compareRecentTransactions);
-
+    data.recentTransactions = data.recentTransactions
+      .sort(util.compareRecentTransactions)
+      .slice(0, 15);
     return res.status(200).json({
       success: true,
-      message: "Store Assistant dashboard data",
-      data: data,
+      status: 200,
+      message: "Assistant dashboard data.",
+      data,
     });
   } catch (error) {
     res.status(500).send({

@@ -54,6 +54,10 @@ const loginAssistant = async ({ identifier, password }, res) => {
       user_role: assistant.user_role,
       _id: assistant._id,
     });
+    if (!assistant.first_name || !assistant.last_name) {
+      assistant.first_name = "Not"
+      assistant.last_name = "Set"
+    }
     assistant.api_token = apiToken;
     assistant = await assistant.save();
     return res.status(200).json({
@@ -101,8 +105,43 @@ module.exports.loginUser = async (req, res) => {
           user,
         },
       });
+    } else if (!user) {
+      let assistant = await AssistantModel.findOne({
+        phone_number: identifier,
+      });
+      if (assistant && (await bCrypt.compare(password, assistant.password))) {
+        const apiToken = module.exports.signToken({
+          phone_number: assistant.phone_number,
+          // password: password,
+          user_role: assistant.user_role,
+          _id: assistant._id,
+        });
+        assistant.api_token = apiToken;
+        assistant = await assistant.save();
+        return res.status(200).json({
+          success: true,
+          message: "You're logged in successfully.",
+          data: {
+            statusCode: 200,
+            message: "Store Assistant logged in successfully.",
+            user: {
+              local: assistant,
+              _id: assistant._id,
+              stores: [await StoreModel.findOne({ _id: assistant.store_id })],
+              api_token: apiToken,
+            },
+          },
+        });
+      } else {
+        res.status(401).json({
+          success: false,
+          message: "invalid credentials",
+          error: {
+            statusCode: 401,
+          },
+        });
+      }
     }
-    await loginAssistant({ identifier, password }, res)
   } catch (error) {
     module.exports.errorHandler(error, res);
   }
