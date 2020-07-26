@@ -219,28 +219,22 @@ exports.markAsPaid = async (req, res) => {
   }
 };
 
+let regex = /^\+(?:[0-9] ?){6,14}[0-9]$/;
 exports.send = async (req, res) => {
   try {
-    let { transaction_id, message } = req.body;
+    let { message } = req.body;
 
-    if (!transaction_id) {
-      return res.send(400).json({
-        success: false,
-        Message: "Please enter a valid transaction_id",
-        error: {
-          errorCode: "400",
-          Message: "Please enter a valid transaction_id",
-        },
-      });
-    }
     let transaction;
     if (req.user.user_role === "super_admin") {
-      transaction = await Transaction.find({ type: "debt", _id: transaction_id })
+      transaction = await Transaction.findOne({
+        type: "debt",
+        _id: req.params.transaction_id,
+      })
         .populate({ path: "customer_ref_id store_ref_id" })
         .exec();
     } else {
-      transaction = await Transaction.find({
-        _id: transaction_id,
+      transaction = await Transaction.findOne({
+        _id: req.params.transaction_id,
         type: "debt",
       })
         .populate({ path: "customer_ref_id store_ref_id" })
@@ -256,7 +250,7 @@ exports.send = async (req, res) => {
       });
     }
     let to = transaction.customer_ref_id.phone_number;
-    let amount = transaction.total_amount;
+    let amount = transaction.amount;
     let store_name = transaction.store_ref_id.store_name;
     message =
       message || `You have an unpaid debt of ${amount} Naira in ${store_name}`;
@@ -269,35 +263,35 @@ exports.send = async (req, res) => {
       }
     }
     const debt = new Debt({
+      store_admin_id: req.user.store_admin_ref,
       trans_ref_id: transaction._id,
-      store_ref_id: transaction.store_ref._id,
+      store_ref_id: transaction.store_ref_id._id,
       status: "sending",
       expected_pay_date: transaction.expected_pay_date,
       message,
       amount,
-      name: debt.customer_ref_id.name,
-      store_admin_id: req.user.store_admin_id,
+      name: transaction.customer_ref_id.name,
+      customer_phone_number: transaction.customer_ref_id.phone_number,
     });
-    await debt.save()
-    const sms = await africastalking.SMS;
-    sms.send({
+    await debt.save();
+    const sms = africastalking.SMS;
+    const response = await sms.send({
       to,
-      message: reminder_message,
+      message: message,
       enque: true,
     });
-    console.log(sms);
-    if (sms.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
+    if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
       return res.status(200).json({
         success: false,
         Message: "Invalid Phone Number",
       });
     }
-    debt.status = "send"
-    await debt.save()
+    debt.status = "send";
+    await debt.save();
     return res.status(200).json({
       success: true,
-      Message: "Reminder sent",
-      details: {
+      message: "Reminder sent",
+      data: {
         to,
         message,
       },
