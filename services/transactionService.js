@@ -6,11 +6,20 @@ module.exports = {
   getDebts: (params) => {
     return Debts.find(params);
   },
-  getTransactions: async (params) => {
-    let transactions = await Transaction.find(params)
-      .populate({ path: "store_ref_id customer_ref_id" })
-      .sort({ createdAt: -1 })
-      .exec();
+  getTransactions: async (params, limit) => {
+    let transactions;
+    if (limit) {
+      transactions = await Transaction.find(params)
+        .populate({ path: "store_ref_id customer_ref_id" })
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec();
+    } else {
+      transactions = await Transaction.find(params)
+        .populate({ path: "store_ref_id customer_ref_id" })
+        .sort({ createdAt: -1 })
+        .exec();
+    }
     transactions = await transactions.reduce(async (acc, transaction) => {
       acc = await acc;
       transaction = transaction.toObject();
