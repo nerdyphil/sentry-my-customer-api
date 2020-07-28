@@ -236,6 +236,7 @@ exports.send = async (req, res) => {
       transaction = await Transaction.findOne({
         _id: req.params.transaction_id,
         type: "debt",
+        store_admin_id: req.user.store_admin_id,
       })
         .populate({ path: "customer_ref_id store_ref_id" })
         .exec();
@@ -267,7 +268,7 @@ exports.send = async (req, res) => {
       trans_ref_id: transaction._id,
       store_ref_id: transaction.store_ref_id._id,
       status: "sending",
-      expected_pay_date: transaction.expected_pay_date,
+      expected_pay_date: transaction.expected_pay_date || Date.now(),
       message,
       amount,
       name: transaction.customer_ref_id.name,
@@ -275,18 +276,30 @@ exports.send = async (req, res) => {
     });
     await debt.save();
     const sms = africastalking.SMS;
-    const response = await sms.send({
-      to,
-      message: message,
-      enque: true,
-    });
-    if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
+    try {
+      const response = await sms.send({
+        to,
+        message: message,
+        enque: true,
+      });
+      if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
+        return res.status(200).json({
+          success: false,
+          Message: "Invalid Phone Number",
+        });
+      }
+    } catch (error) {
+      const Message =
+        typeof error === "string" ? error : "Could not send reminder";
       return res.status(200).json({
-        success: false,
-        Message: "Invalid Phone Number",
+        success: true, // This should be false. Only made it true so fe sees the error message
+        Message,
+        error: {
+          statusCode: 500,
+        },
       });
     }
-    debt.status = "send";
+    debt.status = "sent";
     await debt.save();
     return res.status(200).json({
       success: true,

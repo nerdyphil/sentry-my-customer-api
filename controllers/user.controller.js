@@ -109,7 +109,7 @@ exports.allStoreAssistant = async (req, res) => {
   try {
     let assistants;
     if (req.user.user_role === "super_admin") {
-      assitants = await StoreAssistant.find({}).select("-password").exec();
+      assistants = await StoreAssistant.find({}).select("-password").exec();
     } else {
       assistants = await StoreAssistant.find({ store_admin_ref: req.user._id })
         .select("-password")
@@ -257,7 +257,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
     data.debtAmount = 0;
     data.revenueCount = 0;
     data.revenueAmount = 0;
-    data.recievablesAmount = 0;
+    data.receivablesAmount = 0;
     data.amountForCurrentMonth = 0;
     data.amountForPreviousMonth = 0;
     const assistantstore_customers = await customersModel.find({
@@ -294,7 +294,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
             }
           }
           if (
-            transaction.type.toLowercade() == "debt" &&
+            transaction.type.toLowerCase() == "debt" &&
             transaction.status == true
           ) {
             data.revenueCount + 1;

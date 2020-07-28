@@ -21,9 +21,7 @@
     "yamljs": "^0.3.0"
   },
   "dependencies": {
-    "africastalking": "^0.4.7",
-    "swagger-ui-express": "^4.1.4",
-    "yamljs": "^0.3.0",
+    "africastalking": "^0.5.2",
     "axios": "^0.19.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "1.18.3",
@@ -37,11 +35,14 @@
     "express-validator": "5.3.0",
     "googleapis": "^52.1.0",
     "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.19",
     "mongoose": "5.7.5",
     "multer": "^1.4.2",
     "node-cron": "^2.0.3",
     "nodemailer": "^4.6.8",
     "query-string": "^6.13.1",
-    "twilio": "^3.46.0"
+    "swagger-ui-express": "^4.1.4",
+    "twilio": "^3.46.0",
+    "yamljs": "^0.3.0"
   }
 }
