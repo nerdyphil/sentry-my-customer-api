@@ -198,14 +198,14 @@ exports.storeAdminDashboard = async (req, res, next) => {
       }, 0)
     );
     data.revenueCount = data.transactions.reduce((acc, cur) => {
-      if (cur.transaction.status == true || cur.transaction.type == "paid")
+      if (cur.transaction.status == true)
         return acc + 1;
       return acc;
     }, 0);
     data.revenueAmount = parseInt(
-      data.debtCount.reduce((acc, cur) => {
-        if (!cur.debt.status) return acc;
-        return acc + parseFloat(cur.debt.amount) || 0;
+      data.transactions.reduce((acc, cur) => {
+        if (cur.transaction.status == true ) return acc + parseFloat(cur.transaction.amount) || 0;
+        return acc;
       }, 0)
     );
     data.receivablesCount = data.transactions.reduce((acc, cur) => {
@@ -219,28 +219,28 @@ exports.storeAdminDashboard = async (req, res, next) => {
       }, 0)
     );
     data.amountForCurrentMonth = parseInt(
-      data.debtCount.reduce((acc, cur) => {
-        if (!cur.debt.status) return acc;
+      data.transactions.reduce((acc, cur) => {
+        if (cur.transaction.status == false) return acc;
         let date = new Date();
-        let transactionDate = new Date(cur.debt.createdAt);
+        let transactionDate = new Date(cur.transaction.createdAt);
         if (
           date.getMonth() == transactionDate.getMonth() &&
           date.getFullYear() == transactionDate.getFullYear()
         ) {
-          return acc + parseFloat(cur.debt.amount) || 0;
+          return acc + parseFloat(cur.transaction.amount) || 0;
         }
         return acc;
       }, 0)
     );
-    data.amountForPreviousMonth = data.debtCount.reduce((acc, cur) => {
-      if (!cur.debt.status) return acc;
+    data.amountForPreviousMonth = data.transactions.reduce((acc, cur) => {
+      if (cur.transaction.status == false) return acc;
       let date = new Date();
-      let transactionDate = new Date(cur.debt.createdAt);
+      let transactionDate = new Date(cur.transaction.createdAt);
       if (
         date.getMonth() - 1 == transactionDate.getMonth() &&
         date.getFullYear() == transactionDate.getFullYear()
       ) {
-        return acc + parseFloat(cur.debt.amount) || 0;
+        return acc + parseFloat(cur.transaction.amount) || 0;
       }
       return acc;
     }, 0);
@@ -252,14 +252,13 @@ exports.storeAdminDashboard = async (req, res, next) => {
       data: data,
     });
 
-    // sort transactions and debts by date in descending order
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: error,
+        message: error.message,
       },
     });
   }
@@ -414,7 +413,6 @@ exports.storeAssistantDashboard = async (req, res) => {
             }
           }
           if (
-            transaction.type.toLowerCase() == "debt" &&
             transaction.status == true
           ) {
             data.revenueCount + 1;
