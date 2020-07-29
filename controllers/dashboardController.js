@@ -4,7 +4,7 @@ const storeAssistantModel = require("../models/storeAssistant");
 const Stores = require("../models/store");
 const customerModel = require("../models/customer");
 const transactionModel = require("../models/transaction");
-const complaintsModel = require("../models/complaint_feedbacks");
+const complaintsModel = require("../models/complaint_form");
 const { errorHandler } = require("./login_controler");
 const { transactionService } = require("../services");
 
