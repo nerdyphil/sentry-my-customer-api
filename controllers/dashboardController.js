@@ -4,7 +4,9 @@ const storeAssistantModel = require("../models/storeAssistant");
 const Stores = require("../models/store");
 const customerModel = require("../models/customer");
 const transactionModel = require("../models/transaction");
-const transaction = require("../models/transaction");
+const complaintsModel = require("../models/complaint_feedbacks");
+const { errorHandler } = require("./login_controler");
+const { transactionService } = require("../services");
 
 const util = {
   //utility functions
@@ -198,13 +200,13 @@ exports.storeAdminDashboard = async (req, res, next) => {
       }, 0)
     );
     data.revenueCount = data.transactions.reduce((acc, cur) => {
-      if (cur.transaction.status == true)
-        return acc + 1;
+      if (cur.transaction.status == true) return acc + 1;
       return acc;
     }, 0);
     data.revenueAmount = parseInt(
       data.transactions.reduce((acc, cur) => {
-        if (cur.transaction.status == true ) return acc + parseFloat(cur.transaction.amount) || 0;
+        if (cur.transaction.status == true)
+          return acc + parseFloat(cur.transaction.amount) || 0;
         return acc;
       }, 0)
     );
@@ -251,7 +253,6 @@ exports.storeAdminDashboard = async (req, res, next) => {
       message: "Store Admin dashboard data",
       data: data,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -265,83 +266,106 @@ exports.storeAdminDashboard = async (req, res, next) => {
 };
 
 exports.superAdminDashboard = async (req, res) => {
-  const id = req.user.phone_number;
-
-  const User = await storeAdminModel.findOne({ identifier: id });
-
-  //   check if user exists
-  if (!User) {
-    return res.status(404).json({
+  if (req.user.user_role !== "super_admin") {
+    return res.status(403).json({
       success: false,
-      message: "User not found",
+      message: "You do not have enough permission",
       error: {
-        statusCode: 404,
-        message: "User not found",
-      },
-    });
-  }
-
-  //   check if user is a super admin
-  if (User.local.user_role !== "super_admin") {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorised, resource can only accessed by Super Admin",
-      error: {
-        statusCode: 401,
-        message: "Unauthorised, resource can only accessed by Super Admin",
+        statusCode: 403,
       },
     });
   }
   try {
-    let users = await storeAdminModel.find({});
-    let stores = await Stores.find({});
-    let assistants = await storeAssistantModel.find({});
-    let customers = await customerModel.find({});
-    let transactions = await transactionModel.find({});
-
-    let data = {};
-    data.storeAdminCount = users.length;
-    data.storesCount = stores.length;
-    data.assistantsCount = assistants.length;
-    data.customerCount = customers.length;
-    data.totalDebt = 0;
-    data.transactionCount = transactions.length;
-    data.totalTransactionAmount = 0;
-    // data.transactions = [];
-
-    data.usersCount = 0;
-
-    transactions.forEach((transaction) => {
-      data.totalTransactionAmount += parseInt(transaction.total_amount);
-      if (
-        transaction.type.toLowerCase() == "debt" &&
-        transaction.status == false
-      ) {
-        data.totalDebt += parseInt(transaction.total_amount);
-      }
+    const storeAdminCount = await storeAdminModel.countDocuments({
+      "local.user_role": { $ne: "super_admin" },
     });
+    const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const s_t = (month) => {
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      t.setMonth(month, 1);
+      const s = new Date();
+      s.setMonth(month, 31);
+      s.setHours(24, 0, 0, 0);
+      return {
+        createdAt: {
+          $gte: t,
+          $lt: s,
+        },
+      };
+    };
+    const assistantsCount = await storeAssistantModel.countDocuments({});
+    const totalDebt = (
+      await transactionService.getTransactions({ type: "debt" })
+    ).reduce(
+      (acc, cur) => acc + (parseFloat(cur.amount || cur.total_amount) || 0),
+      0
+    );
+    const customerCount = await customerModel.countDocuments({});
+    const storesCount = await Stores.countDocuments({});
+    const transactionCount = await transactionModel.countDocuments({});
+    const complaintCount = await complaintsModel.countDocuments({});
+    const graphData = {
+      incomePerMonth: await months.reduce(async (acc, month) => {
+        acc = await acc;
+        const { createdAt } = s_t(month);
+        const transactions = await transactionModel.find({
+          status: {
+            $ne: false,
+          },
+          createdAt,
+        });
+        return [
+          ...acc,
+          transactions.reduce(
+            (acc, cur) =>
+              acc + (parseFloat(cur.amount || cur.total_amount) || 0),
+            0
+          ),
+        ];
+      }, []),
+      transactionsPerMonth: await months.reduce(async (acc, month) => {
+        acc = await acc;
+        const transactions = await transactionModel.countDocuments(s_t(month));
+        return [...acc, transactions];
+      }, []),
+      usersPerMonth: await months.reduce(async (acc, month) => {
+        acc = await acc;
+        const customers = await customerModel.countDocuments(s_t(month));
+        const admins = await storeAdminModel.countDocuments({
+          "local.user_role": { $ne: "super_admin" },
+          ...s_t(month),
+        });
+        const assistants = await storeAssistantModel.countDocuments(s_t(month));
+        return [...acc, customers + admins + assistants];
+      }, []),
+    };
+    const recentTransaction = await transactionService.getTransactions({}, 20);
+    const latestDebt = await transactionService.getTransactions(
+      { type: "debt" },
+      20
+    );
 
-    // the total number of users should be = storeAdmin + customers + storeAssistants
-    data.usersCount =
-      data.storeAdminCount + data.customerCount + data.assistantsCount;
-
-    // sort transactions
-    // data.transactions.sort(compareRecentTransactions);
-
-    res.status(200).json({
+    const data = {
+      usersCount: storeAdminCount + assistantsCount + customerCount,
+      storesCount,
+      totalDebt,
+      storeAdminCount,
+      assistantsCount,
+      customerCount,
+      transactionCount,
+      complaintCount,
+      ...graphData,
+      recentTransaction,
+      latestDebt,
+    };
+    return res.status(200).json({
       success: true,
-      message: "Dashboard data",
+      message: "your dashboard data",
       data,
     });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: {
-        statusCode: 500,
-        message: error.message,
-      },
-    });
+  } catch (error) {
+    errorHandler(error, res);
   }
 };
 
@@ -412,9 +436,7 @@ exports.storeAssistantDashboard = async (req, res) => {
               data.debtAmount += 0;
             }
           }
-          if (
-            transaction.status == true
-          ) {
+          if (transaction.status == true) {
             data.revenueCount + 1;
             try {
               data.revenueAmount += parseFloat(transaction.amount);
