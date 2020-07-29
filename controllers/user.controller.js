@@ -420,6 +420,49 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
 };
 //#endregion
 
+exports.updateBankDetails = (req, res) => {
+  const identifier = req.user.phone_number;
+  let { account_number, bank } = req.body;
+  User.findOne({ identifier })
+    .then(async user => {
+      user.bank_details.account_number =
+        account_number || user.bank_details.account_number;
+      user.bank_details.bank = bank || user.bank_details.bank;
+
+      user
+        .save()
+        .then(result => {
+          res.status(200).json({
+            success: true,
+            message: "Bank Details updated successfully",
+            data: {
+              bank_details: result.bank_details
+            }
+          });
+        })
+        .catch(error => {
+          res.status(500).json({
+            status: false,
+            message: error.message,
+            error: {
+              code: 500,
+              message: error.message
+            }
+          });
+        });
+    })
+    .catch(error => {
+      res.status(500).json({
+        status: false,
+        message: error.message,
+        error: {
+          code: 500,
+          message: error.message
+        }
+      });
+    });
+};
+
 exports.updateStoreAdmin = async (req, res) => {
   try {
     const update = { local: { ...req.body }, bank_details: { ...req.body } };
