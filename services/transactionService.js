@@ -38,6 +38,7 @@ module.exports = {
         {
           ...transaction,
           store_name,
+          storeName: store_name,
           store_id,
           store_ref: transaction.store_ref_id,
           store_ref_id: store_id,
