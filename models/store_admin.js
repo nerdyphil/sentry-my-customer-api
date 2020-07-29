@@ -45,7 +45,7 @@ const storeAdminSchema = new mongoose.Schema(
     },
     bank_details: {
       bank: String,
-      account_number: Number,
+      account_number: String,
       account_name: String
     },
     api_token: {
