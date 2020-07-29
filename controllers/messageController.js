@@ -60,25 +60,45 @@ exports.send = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Please provide the required parameters",
+      error: {
+        statusCode: 400,
+        message: "Please provide the required parameters"
+      }
     });
   }
 
   const identifier = req.user.phone_number;
   UserModel.findOne({ identifier })
+    .catch((err) => {
+      return res.status(500).json({
+        success: false,
+        message: "Store admin does not exist",
+        error:{
+          statusCode: 404,
+          message:"Store admin does not exist"
+        }
+      });
+    })
     .then((user) => {
       //filtering out Nigerian numbers form the number array
-      const nigerianNo = numbers.filter((number) => number.charAt(0) == "2");
+      const nigerianNo = numbers.filter((number) => String(number).charAt(0) == "2");
 
       //filtering out Indian numbers form the number array
-      const indianNo = numbers.filter((number) => number.charAt(0) == "9");
+      const indianNo = numbers.filter((number) => String(number).charAt(0) == "9");
 
       if (nigerianNo.length == 0 && indianNo.length == 0) {
         return res.status(400).json({
           success: false,
           message: "Could not send message to any of the provided numbers",
+          error:{
+            statusCode: 400,
+            message: "Could not send message to any of the provided numbers"
+          }
         });
       }
-
+      var messageSentNG = false;
+      //could not send data out of promise so I had to do this
+      var messageErrorNG = "The supplied authentication in incorrect";
       let formattedNg = [];
       let formattedIn = [];
 
@@ -93,32 +113,38 @@ exports.send = async (req, res) => {
         sms
           .send({
             to: formattedNg,
-            message,
-            enque: true,
-          })
-          .then((response) => {
-            console.log(response);
-          })
-          .catch((err) => {
-            res.status(500).json({
-              success: false,
-              error: err,
-            });
+            message: message,
+            enqueue: true,
+          }).then(response=>{
+            messageSentNG = true;
+          }).catch((error) =>{
+            messageErrorNG  = "The supplied authentication in incorrect";
           });
       }
 
       if (indianNo.length > 0) {
         //Indian sms gateway goes here
       }
-
-      res.status(200).json({
-        success: true,
-        message: "Message sent",
-      });
-    })
-    .catch((err) => {
-      return res.status(500).json({
-        error: err,
-      });
+      if(messageSentNG){
+        res.status(200).json({
+          success: true,
+          message: "Messages sent successfully",
+          data: {
+            statusCode: 200,
+            message: "mesages sent successfully",
+            recipients: formattedNg,
+            message: message
+          }
+        });
+      }else{
+        res.status(400).json({
+          success: false,
+          message: "messages not sent",
+          error:{
+            statusCode: 400,
+            message: messageErrorNG
+          }
+        });
+      }
     });
 };
