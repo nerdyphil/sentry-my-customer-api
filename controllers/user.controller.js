@@ -8,6 +8,7 @@ const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator/check");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const _ = require("lodash");
 
 const responseManager = require("../util/response_manager");
 const DataUri = require("datauri/parser");
@@ -293,9 +294,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
               data.debtAmount += 0;
             }
           }
-          if (
-            transaction.status == true
-          ) {
+          if (transaction.status == true) {
             data.revenueCount + 1;
             try {
               data.revenueAmount += parseFloat(transaction.amount);
@@ -421,47 +420,34 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
 };
 //#endregion
 
-exports.updateStoreAdmin = (req, res) => {
-  const identifier = req.user.phone_number;
-  let { first_name, last_name, email } = req.body;
-  User.findOne({ identifier })
-    .then(async (user) => {
-      user.local.first_name = first_name || user.local.first_name;
-      user.local.last_name = last_name || user.local.last_name;
-      user.local.email = email || user.local.email;
-
-      user
-        .save()
-        .then((result) => {
-          res.status(200).json({
-            success: true,
-            message: "Store admin updated successfully",
-            data: {
-              store_admin: result,
-            },
-          });
-        })
-        .catch((error) => {
-          res.status(500).json({
-            status: false,
-            message: error.message,
-            error: {
-              code: 500,
-              message: error.message,
-            },
-          });
-        });
-    })
-    .catch((error) => {
-      res.status(500).json({
-        status: false,
-        message: error.message,
+exports.updateStoreAdmin = async (req, res) => {
+  try {
+    const update = req.body;
+    let user = await User.findOne({ _id: req.user._id });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
         error: {
-          code: 500,
-          message: error.message,
+          statusCode: 401,
         },
       });
+    }
+    delete update.local.is_active;
+    delete update.local.user_role;
+    delete update.local.password;
+    _.merge(user, update);
+    let user = await user.save();
+    return res.status(200).json({
+      success: true,
+      message: "account updated",
+      data: {
+        store_admin: user,
+      },
     });
+  } catch (error) {
+    errorHandler(error, res);
+  }
 };
 
 exports.updatePassword = (req, res) => {
