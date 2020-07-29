@@ -96,7 +96,6 @@ exports.send = async (req, res) => {
           }
         });
       }
-      var messageSentNG = false;
       //could not send data out of promise so I had to do this
       var messageErrorNG = "The supplied authentication in incorrect";
       let formattedNg = [];
@@ -116,16 +115,15 @@ exports.send = async (req, res) => {
             message: message,
             enqueue: true,
           }).then(response=>{
-            messageSentNG = true;
+            console.log(response)
           }).catch((error) =>{
-            messageErrorNG  = "The supplied authentication in incorrect";
+            console.log(error)
           });
       }
 
       if (indianNo.length > 0) {
         //Indian sms gateway goes here
       }
-      if(messageSentNG){
         res.status(200).json({
           success: true,
           message: "Messages sent successfully",
@@ -136,15 +134,13 @@ exports.send = async (req, res) => {
             message: message
           }
         });
-      }else{
-        res.status(400).json({
-          success: false,
-          message: "messages not sent",
-          error:{
-            statusCode: 400,
-            message: messageErrorNG
-          }
-        });
-      }
+        // res.status(400).json({
+        //   success: false,
+        //   message: "messages not sent",
+        //   error:{
+        //     statusCode: 400,
+        //     message: messageErrorNG
+        //   }
+        // });
     });
 };
