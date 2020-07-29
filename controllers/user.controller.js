@@ -422,22 +422,20 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
 
 exports.updateStoreAdmin = async (req, res) => {
   try {
-    const update = req.body;
+    const update = { local: { ...req.body }, bank_details: { ...req.body } };
     let user = await User.findOne({ _id: req.user._id });
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: "Unauthorized" + req.user._id,
         error: {
           statusCode: 401,
         },
       });
     }
-    delete update.local.is_active;
-    delete update.local.user_role;
-    delete update.local.password;
+    console.log(update);
     _.merge(user, update);
-    let user = await user.save();
+    user = await user.save();
     return res.status(200).json({
       success: true,
       message: "account updated",
