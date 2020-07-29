@@ -57,7 +57,7 @@ exports.send = async (req, res) => {
   const { message, numbers } = req.body;
 
   if (!message || !numbers) {
-    return res.ststus(400).json({
+    return res.status(400).json({
       success: false,
       message: "Please provide the required parameters",
     });
