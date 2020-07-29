@@ -79,5 +79,6 @@ router.patch(
   users.deactivateUser
 );
 router.patch("/store-admin/activate/:phone_number", auth, users.activateUser);
+router.get("/store_admin/:id", auth, users.getSingleStoreAdmin);
 
 module.exports = router;
