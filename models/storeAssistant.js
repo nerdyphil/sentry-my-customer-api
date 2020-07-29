@@ -23,7 +23,7 @@ const storeAssistantSchema = new Schema(
     },
     user_role: { type: String, default: "store_assistant" },
   },
-  { timestamp: true }
+  { timestamps: true }
 );
 
 module.exports = model("storeAssistant", storeAssistantSchema);
