@@ -26,8 +26,7 @@ router.get(
 );
 router.get(
   "/transaction/:transaction_id",
-  auth,
-  transactions.findOne
+  transactions.findOneTransaction
 );
 
 router.get("/transaction/:store_id/:customer_id", auth, transactions.findAll);
