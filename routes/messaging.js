@@ -9,4 +9,6 @@ router.get("/message/numbers", auth, messageController.getCustomer);
 
 router.post("/message/send", auth, messageController.send);
 
+router.get("/message/get", auth, messageController.getBroadcasts);
+
 module.exports = router;
