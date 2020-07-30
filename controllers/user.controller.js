@@ -15,6 +15,7 @@ const DataUri = require("datauri/parser");
 const path = require("path");
 const { uploader } = require("./cloudinaryController");
 const { errorHandler } = require("./login_controler");
+const { transactionService } = require("../services");
 
 exports.validate = (method) => {
   switch (method) {
@@ -999,5 +1000,163 @@ exports.getAllStoreAdmin = async (req, res, next) => {
         message: error,
       },
     });
+  }
+};
+
+exports.getSingleStoreAdmin = async (req, res) => {
+  try {
+    if (req.user.user_role !== "super_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "not enough permissions",
+        error: {
+          statusCode: 403,
+        },
+      });
+    }
+    const user = await User.findOne({ _id: req.params.id });
+    if (!user) {
+      return res.status(404).json({
+        message: "No store admin with that Id",
+        success: false,
+        error: {
+          statusCode: 404,
+        },
+      });
+    }
+    const { id } = req.params;
+    const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const s_t = (month) => {
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      t.setMonth(month, 1);
+      const s = new Date();
+      s.setMonth(month, 31);
+      s.setHours(24, 0, 0, 0);
+      return {
+        createdAt: {
+          $gte: t,
+          $lt: s,
+        },
+      };
+    };
+    const stores = await Store.find({ store_admin_ref: id });
+    const trans = (
+      await transactionService.getTransactions({
+        store_admin_ref: id,
+      })
+    ).map((elem) => ({ storeName: elem.store_name, transaction: { ...elem } }));
+    const debts = (
+      await transactionService.getTransactions({
+        store_admin_ref: id,
+        type: "debt",
+      })
+    ).map((elem) => ({ storeName: elem.store_name, debt: { ...elem } }));
+    const data = {
+      user,
+      storeCount: stores.length,
+      assistantCount: await StoreAssistant.countDocuments({
+        store_admin_ref: id,
+      }),
+      customerCount: await stores.reduce(
+        async (acc, cur) =>
+          (await acc) +
+          (await customersModel.countDocuments({ store_ref_id: cur._id })),
+        0
+      ),
+      newCustomers: (
+        await stores.reduce(
+          async (acc, cur) => [
+            ...(await acc),
+            ...(await customersModel.find({ store_ref_id: cur._id })),
+          ],
+          []
+        )
+      )
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        .slice(0, 15),
+      transactions: trans,
+      chart: await months.reduce(async (acc, month) => {
+        acc = await acc;
+        const transactions = await transactionsModel.countDocuments({
+          store_admin_ref: id,
+          ...s_t(month),
+        });
+        return [...acc, transactions];
+      }, []),
+      recentTransactions: trans.slice(0, 15),
+      recentDebts: debts.slice(0, 15),
+      debtCount: debts.length,
+      debtAmount: parseFloat(
+        debts.reduce((acc, cur) => {
+          if (cur.debt.status == true) {
+            return acc;
+          }
+          return acc + (parseFloat(cur.debt.amount) || 0);
+        }, 0)
+      ),
+      revenueCount: trans.reduce((acc, cur) => {
+        if (cur.transaction.status == true) return acc + 1;
+        return acc;
+      }, 0),
+      revenueAmount: parseFloat(
+        trans.reduce((acc, cur) => {
+          if (cur.transaction.status == true)
+            return acc + (parseFloat(cur.transaction.amount) || 0);
+          return acc;
+        }, 0)
+      ),
+      amountForCurrentMonth: parseFloat(
+        trans.reduce((acc, cur) => {
+          if (cur.transaction.status == false) return acc;
+          let date = new Date();
+          let transactionDate = new Date(cur.transaction.createdAt);
+          if (
+            date.getMonth() == transactionDate.getMonth() &&
+            date.getFullYear() == transactionDate.getFullYear()
+          ) {
+            return acc + (parseFloat(cur.transaction.amount) || 0);
+          }
+          return acc;
+        }, 0)
+      ),
+      amountForPreviousMonth: trans.reduce((acc, cur) => {
+        if (cur.transaction.status == false) return acc;
+        let date = new Date();
+        let transactionDate = new Date(cur.transaction.createdAt);
+        if (
+          date.getMonth() - 1 == transactionDate.getMonth() &&
+          date.getFullYear() == transactionDate.getFullYear()
+        ) {
+          return acc + (parseFloat(cur.transaction.amount) || 0);
+        }
+        return acc;
+      }, 0),
+      receivablesCount: trans.reduce((acc, cur) => {
+        if (
+          (cur.transaction.type && cur.transaction.type.toLowerCase()) !==
+          "receivables"
+        )
+          return acc;
+        return acc + 1;
+      }, 0),
+      receivablesAmount: parseFloat(
+        trans.reduce((acc, cur) => {
+          if (
+            (cur.transaction.type && cur.transaction.type.toLowerCase()) !==
+            "receivables"
+          )
+            return acc;
+          return acc + parseFloat(cur.transaction.amount) || 0;
+        }, 0)
+      ),
+    };
+    return res.status(200).json({
+      success: true,
+      message: "admin dashboard",
+      data,
+    });
+  } catch (error) {
+    errorHandler(error, res);
   }
 };
