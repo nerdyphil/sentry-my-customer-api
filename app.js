@@ -23,6 +23,7 @@ const complaintRouter = require("./routes/complaint");
 const docs = require("./routes/docs");
 const user = require("./routes/user");
 const reset = require("./routes/reset");
+const activity = require("./routes/activity");
 const debt = require("./routes/debt_reminder");
 const businessCards = require("./routes/businessCardRoute");
 const account = require("./routes/account.verify");
@@ -102,6 +103,7 @@ app.use(otp);
 app.use(reset);
 app.use(emailAPI);
 app.use(transactions);
+app.use(activity)
 app.use(businessCards);
 app.use(store);
 app.use(google);
