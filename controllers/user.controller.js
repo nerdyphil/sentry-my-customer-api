@@ -423,12 +423,14 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
 
 exports.updateBankDetails = (req, res) => {
   const identifier = req.user.phone_number;
-  let { account_number, bank } = req.body;
+  let { account_number, account_name, bank } = req.body;
   User.findOne({ identifier })
     .then(async user => {
       user.bank_details.account_number =
         account_number || user.bank_details.account_number;
       user.bank_details.bank = bank || user.bank_details.bank;
+      user.bank_details.account_name =
+        account_name || user.bank_details.account_name;
 
       user
         .save()
