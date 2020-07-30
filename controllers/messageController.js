@@ -111,50 +111,54 @@ exports.send = async (req, res) => {
       if (formattedNg.length > 0) {
         //Sms gateway for Nigerian numbers
         const sms = africastalking.SMS;
-        messageSentNG = true;
         sms
           .send({
             to: formattedNg,
             message: message,
             enqueue: true,
-          }).then(response=>{
-            messageSentNG = true;
+          }).then(async response=>{
+            newMessage  = new BroadcastMessage({
+              senderPhone: identifier,
+              message: message,
+              numbers: formattedNg,
+            });
+            const messageSent = await BroadcastMessage.create(newMessage);
+            if (messageSent){
+              console.log(messageSent)
+              console.log("response", response)
+              return res.status(200).json({
+                success: true,
+                message: "Messages sent successfully",
+                data: {
+                  statusCode: 200,
+                  message: "mesages sent successfully",
+                  recipients: response.SMSMessageData.Recipients,
+                }
+              });
+            }
           }).catch((error) =>{
-            messageErrorNG  = "The supplied authentication in incorrect";
+            console.log("error",error)
+            res.status(400).json({
+              success: false,
+              message: "messages not sent",
+              error: {
+                statusCode: 400,
+                message: error
+              }
+            });
           });
       }
-      
+
       if (indianNo.length > 0) {
         //Indian sms gateway goes here
       }
-
-      if(messageSentNG){
-        res.status(200).json({
-          success: true,
-          message: "Messages sent successfully",
-          data: {
-            statusCode: 200,
-            message: "mesages sent successfully",
-            recipients: formattedNg,
-            message: message
-          }
-        });
-      }else{
-        res.status(400).json({
-          success: false,
-          message: "messages not sent",
-          error:{
-            statusCode: 400,
-            message: messageErrorNG
-          }
-        });
-      }
+        
 
       // Save Messages to Database
       const bm = new BroadcastMessage({
         numbers: formattedNg,
         message,
-        status: res.statusMessage === 'OK' && messageSentNG === true ? "Sent" : "Not Sent",
+        status: res.statusMessage === 'OK' ? "Sent" : "Not Sent",
         sender: user._id,
         senderPhone: req.user.phone_number
       });
