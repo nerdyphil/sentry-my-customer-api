@@ -13,7 +13,6 @@ const _ = require("lodash");
 const responseManager = require("../util/response_manager");
 const DataUri = require("datauri/parser");
 const path = require("path");
-const { uploader } = require("./cloudinaryController");
 const { errorHandler } = require("./login_controler");
 const { transactionService } = require("../services");
 

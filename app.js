@@ -29,6 +29,7 @@ const account = require("./routes/account.verify");
 const dashboard = require("./routes/dashboard");
 const messaging = require("./routes/messaging");
 const payment = require("./routes/payment");
+const imageUpdate = require("./routes/profileImage");
 
 app.use(cors());
 app.use(expressValidator());
@@ -117,6 +118,7 @@ app.use("/register", register);
 
 app.use("/login", login);
 app.use(debt);
+app.use(imageUpdate);
 
 //This should be the last route else any after it won't work
 app.use("*", (req, res) => {
