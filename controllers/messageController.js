@@ -111,6 +111,7 @@ exports.send = async (req, res) => {
       if (formattedNg.length > 0) {
         //Sms gateway for Nigerian numbers
         const sms = africastalking.SMS;
+        messageSentNG = true;
         sms
           .send({
             to: formattedNg,
@@ -122,7 +123,7 @@ exports.send = async (req, res) => {
             messageErrorNG  = "The supplied authentication in incorrect";
           });
       }
-
+      
       if (indianNo.length > 0) {
         //Indian sms gateway goes here
       }
@@ -153,7 +154,7 @@ exports.send = async (req, res) => {
       const bm = new BroadcastMessage({
         numbers: formattedNg,
         message,
-        status: res.statusMessage === 'OK' ? "Sent" : "Not Sent",
+        status: res.statusMessage === 'OK' && messageSentNG === true ? "Sent" : "Not Sent",
         sender: user._id,
         senderPhone: req.user.phone_number
       });
