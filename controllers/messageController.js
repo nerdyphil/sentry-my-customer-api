@@ -174,7 +174,7 @@ exports.getBroadcasts = async (req, res) => {
     // Get Broadcasts of Sender
     const broadcasts = await BroadcastMessage.find({
       senderPhone: req.user.phone_number,
-    });
+    }).sort({ date: -1 });
 
     res.status(200).send({
       success: true,
