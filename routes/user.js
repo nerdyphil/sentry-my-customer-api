@@ -54,6 +54,9 @@ router.delete(
 // Update User Info with user_id
 router.put("/store-admin/update", auth, users.updateStoreAdmin);
 
+// Update Bank Info with user_id
+router.put("/bank-details", auth, users.updateBankDetails);
+
 router.post(
   "/store-admin/update/password",
   auth,
