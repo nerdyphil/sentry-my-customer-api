@@ -153,7 +153,7 @@ exports.send = async (req, res) => {
       const bm = new BroadcastMessage({
         numbers: formattedNg,
         message,
-        status: res.statusCode == 400 ? "Not Sent" : "Sent",
+        status: res.statusMessage === 'OK' ? "Sent" : "Not Sent",
         sender: user._id,
         senderPhone: req.user.phone_number
       });
@@ -169,7 +169,7 @@ exports.getBroadcasts = async (req, res) => {
     // Get Broadcasts of Sender
     const broadcasts = await BroadcastMessage.find({
       senderPhone: req.user.phone_number,
-    }).sort({ date: -1 });
+    });
 
     res.status(200).send({
       success: true,
