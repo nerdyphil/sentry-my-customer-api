@@ -1090,12 +1090,20 @@ exports.getSingleStoreAdmin = async (req, res) => {
         return acc;
       }, 0),
       receivablesCount: trans.reduce((acc, cur) => {
-        if (cur.transaction.type !== "receivables") return acc;
+        if (
+          (cur.transaction.type && cur.transaction.type.toLowerCase()) !==
+          "receivables"
+        )
+          return acc;
         return acc + 1;
       }, 0),
       receivablesAmount: parseFloat(
         trans.reduce((acc, cur) => {
-          if (cur.transaction.type !== "receivables") return acc;
+          if (
+            (cur.transaction.type && cur.transaction.type.toLowerCase()) !==
+            "receivables"
+          )
+            return acc;
           return acc + parseFloat(cur.transaction.amount) || 0;
         }, 0)
       ),
