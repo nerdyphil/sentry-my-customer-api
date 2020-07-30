@@ -46,7 +46,9 @@ module.exports.signToken = (data) =>
     expiresIn: "24h",
   });
 const loginAssistant = async ({ identifier, password }, res) => {
-  let assistant = await AssistantModel.findOne({ phone_number: identifier });
+  let assistant = await AssistantModel.findOne({ phone_number: identifier })
+    .populate({ path: "store_admin_ref" })
+    .exec();
   if (assistant && (await bCrypt.compare(password, assistant.password))) {
     const apiToken = module.exports.signToken({
       phone_number: assistant.phone_number,
@@ -67,6 +69,10 @@ const loginAssistant = async ({ identifier, password }, res) => {
         statusCode: 200,
         message: "Store Assistant logged in successfully.",
         user: {
+          currencyPreference:
+            (assistant.store_admin_ref &&
+              assistant.store_admin_ref.currencyPreference) ||
+            "ngn",
           local: assistant,
           _id: assistant._id,
           stores: [await StoreModel.findOne({ _id: assistant.store_id })],
@@ -103,7 +109,10 @@ module.exports.loginUser = async (req, res) => {
           message: "You're logged in successfully.",
           data: {
             statusCode: 200,
-            user,
+            user: {
+              ...user.toObject(),
+              currencyPreference: user.currencyPreference || "ngn",
+            },
           },
         });
       } else {
@@ -118,7 +127,9 @@ module.exports.loginUser = async (req, res) => {
     } else if (!user) {
       let assistant = await AssistantModel.findOne({
         phone_number: identifier,
-      });
+      })
+        .populate({ path: "store_admin_ref" })
+        .exec();
       if (assistant && (await bCrypt.compare(password, assistant.password))) {
         const apiToken = module.exports.signToken({
           phone_number: assistant.phone_number,
@@ -135,6 +146,10 @@ module.exports.loginUser = async (req, res) => {
             statusCode: 200,
             message: "Store Assistant logged in successfully.",
             user: {
+              currencyPreference:
+                (assistant.store_admin_ref &&
+                  assistant.store_admin_ref.currencyPreference) ||
+                "ngn",
               local: assistant,
               _id: assistant._id,
               stores: [await StoreModel.findOne({ _id: assistant.store_id })],

@@ -46,7 +46,11 @@ const storeAdminSchema = new mongoose.Schema(
     bank_details: {
       bank: String,
       account_number: String,
-      account_name: String
+      account_name: String,
+    },
+    currencyPreference: {
+      type: String,
+      default: "ngn",
     },
     api_token: {
       type: String,
