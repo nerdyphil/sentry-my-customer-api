@@ -437,7 +437,7 @@ exports.updateBankDetails = (req, res) => {
             success: true,
             message: "Bank Details updated successfully",
             data: {
-              bank_details: result.bank_details
+              user: result
             }
           });
         })
