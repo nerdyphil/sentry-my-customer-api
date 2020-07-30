@@ -14,10 +14,7 @@ const activitySchema = new Schema(
     },
     time: { type: Date },
     operation: {
-      operation_type: {
-        type: String,
-        enum: ["update", "delete", "create"]
-      },
+      operation_type: String,
       object: {
         updated_field1: String,
         updated_field2: String
