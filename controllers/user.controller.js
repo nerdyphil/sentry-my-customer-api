@@ -8,12 +8,14 @@ const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator/check");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const _ = require("lodash");
 
 const responseManager = require("../util/response_manager");
 const DataUri = require("datauri/parser");
 const path = require("path");
 const { uploader } = require("./cloudinaryController");
 const { errorHandler } = require("./login_controler");
+const { transactionService } = require("../services");
 
 exports.validate = (method) => {
   switch (method) {
@@ -293,9 +295,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
               data.debtAmount += 0;
             }
           }
-          if (
-            transaction.status == true
-          ) {
+          if (transaction.status == true) {
             data.revenueCount + 1;
             try {
               data.revenueAmount += parseFloat(transaction.amount);
@@ -421,47 +421,32 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
 };
 //#endregion
 
-exports.updateStoreAdmin = (req, res) => {
-  const identifier = req.user.phone_number;
-  let { first_name, last_name, email } = req.body;
-  User.findOne({ identifier })
-    .then(async (user) => {
-      user.local.first_name = first_name || user.local.first_name;
-      user.local.last_name = last_name || user.local.last_name;
-      user.local.email = email || user.local.email;
-
-      user
-        .save()
-        .then((result) => {
-          res.status(200).json({
-            success: true,
-            message: "Store admin updated successfully",
-            data: {
-              store_admin: result,
-            },
-          });
-        })
-        .catch((error) => {
-          res.status(500).json({
-            status: false,
-            message: error.message,
-            error: {
-              code: 500,
-              message: error.message,
-            },
-          });
-        });
-    })
-    .catch((error) => {
-      res.status(500).json({
-        status: false,
-        message: error.message,
+exports.updateStoreAdmin = async (req, res) => {
+  try {
+    const update = { local: { ...req.body }, bank_details: { ...req.body } };
+    let user = await User.findOne({ _id: req.user._id });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized" + req.user._id,
         error: {
-          code: 500,
-          message: error.message,
+          statusCode: 401,
         },
       });
+    }
+    console.log(update);
+    _.merge(user, update);
+    user = await user.save();
+    return res.status(200).json({
+      success: true,
+      message: "account updated",
+      data: {
+        store_admin: user,
+      },
     });
+  } catch (error) {
+    errorHandler(error, res);
+  }
 };
 
 exports.updatePassword = (req, res) => {
@@ -972,5 +957,163 @@ exports.getAllStoreAdmin = async (req, res, next) => {
         message: error,
       },
     });
+  }
+};
+
+exports.getSingleStoreAdmin = async (req, res) => {
+  try {
+    if (req.user.user_role !== "super_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "not enough permissions",
+        error: {
+          statusCode: 403,
+        },
+      });
+    }
+    const user = await User.findOne({ _id: req.params.id });
+    if (!user) {
+      return res.status(404).json({
+        message: "No store admin with that Id",
+        success: false,
+        error: {
+          statusCode: 404,
+        },
+      });
+    }
+    const { id } = req.params;
+    const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const s_t = (month) => {
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      t.setMonth(month, 1);
+      const s = new Date();
+      s.setMonth(month, 31);
+      s.setHours(24, 0, 0, 0);
+      return {
+        createdAt: {
+          $gte: t,
+          $lt: s,
+        },
+      };
+    };
+    const stores = await Store.find({ store_admin_ref: id });
+    const trans = (
+      await transactionService.getTransactions({
+        store_admin_ref: id,
+      })
+    ).map((elem) => ({ storeName: elem.store_name, transaction: { ...elem } }));
+    const debts = (
+      await transactionService.getTransactions({
+        store_admin_ref: id,
+        type: "debt",
+      })
+    ).map((elem) => ({ storeName: elem.store_name, debt: { ...elem } }));
+    const data = {
+      user,
+      storeCount: stores.length,
+      assistantCount: await StoreAssistant.countDocuments({
+        store_admin_ref: id,
+      }),
+      customerCount: await stores.reduce(
+        async (acc, cur) =>
+          (await acc) +
+          (await customersModel.countDocuments({ store_ref_id: cur._id })),
+        0
+      ),
+      newCustomers: (
+        await stores.reduce(
+          async (acc, cur) => [
+            ...(await acc),
+            ...(await customersModel.find({ store_ref_id: cur._id })),
+          ],
+          []
+        )
+      )
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        .slice(0, 15),
+      transactions: trans,
+      chart: await months.reduce(async (acc, month) => {
+        acc = await acc;
+        const transactions = await transactionsModel.countDocuments({
+          store_admin_ref: id,
+          ...s_t(month),
+        });
+        return [...acc, transactions];
+      }, []),
+      recentTransactions: trans.slice(0, 15),
+      recentDebts: debts.slice(0, 15),
+      debtCount: debts.length,
+      debtAmount: parseFloat(
+        debts.reduce((acc, cur) => {
+          if (cur.debt.status == true) {
+            return acc;
+          }
+          return acc + (parseFloat(cur.debt.amount) || 0);
+        }, 0)
+      ),
+      revenueCount: trans.reduce((acc, cur) => {
+        if (cur.transaction.status == true) return acc + 1;
+        return acc;
+      }, 0),
+      revenueAmount: parseFloat(
+        trans.reduce((acc, cur) => {
+          if (cur.transaction.status == true)
+            return acc + (parseFloat(cur.transaction.amount) || 0);
+          return acc;
+        }, 0)
+      ),
+      amountForCurrentMonth: parseFloat(
+        trans.reduce((acc, cur) => {
+          if (cur.transaction.status == false) return acc;
+          let date = new Date();
+          let transactionDate = new Date(cur.transaction.createdAt);
+          if (
+            date.getMonth() == transactionDate.getMonth() &&
+            date.getFullYear() == transactionDate.getFullYear()
+          ) {
+            return acc + (parseFloat(cur.transaction.amount) || 0);
+          }
+          return acc;
+        }, 0)
+      ),
+      amountForPreviousMonth: trans.reduce((acc, cur) => {
+        if (cur.transaction.status == false) return acc;
+        let date = new Date();
+        let transactionDate = new Date(cur.transaction.createdAt);
+        if (
+          date.getMonth() - 1 == transactionDate.getMonth() &&
+          date.getFullYear() == transactionDate.getFullYear()
+        ) {
+          return acc + (parseFloat(cur.transaction.amount) || 0);
+        }
+        return acc;
+      }, 0),
+      receivablesCount: trans.reduce((acc, cur) => {
+        if (
+          (cur.transaction.type && cur.transaction.type.toLowerCase()) !==
+          "receivables"
+        )
+          return acc;
+        return acc + 1;
+      }, 0),
+      receivablesAmount: parseFloat(
+        trans.reduce((acc, cur) => {
+          if (
+            (cur.transaction.type && cur.transaction.type.toLowerCase()) !==
+            "receivables"
+          )
+            return acc;
+          return acc + parseFloat(cur.transaction.amount) || 0;
+        }, 0)
+      ),
+    };
+    return res.status(200).json({
+      success: true,
+      message: "admin dashboard",
+      data,
+    });
+  } catch (error) {
+    errorHandler(error, res);
   }
 };
