@@ -256,6 +256,34 @@ exports.findOne = async (req, res, next) => {
   }
 };
 
+exports.findOneTransaction = async (req, res, next) => {
+  try {
+    let transaction;
+    transaction = await transactionService.getOneTransaction({
+      _id: req.params.transaction_id,
+    });
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found",
+        data: {
+          statusCode: 404,
+          message: "Transaction not found",
+        },
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Transaction",
+      data: {
+        transaction,
+      },
+    });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
 // Update a transaction identified by the transaction_id in the request
 exports.update = async (req, res) => {
   try {
