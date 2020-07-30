@@ -518,6 +518,32 @@
                 <li>Get business cards <strong>/business-cards [GET]</strong></li>
             </ul>
         </div>
+        
+        <div class="banks" id="banks">
+            <h1>Banks</h1>
+            <hr>
+            <p>Get all Nigerian banks</p>
+            <h4>Endpoints</h4>
+            <ul>
+                <li>Get all banks <strong>/banks/list [GET]</strong></li>
+            </ul>
+        </div>
+        
+        <div class="verify" id="verify">
+            <h1>Account Verify</h1>
+            <hr>
+            <p>Verify account number</p>
+            <h4>Endpoints</h4>
+            <ul>
+                <li>Verify <strong>/account/verify [POST]</strong>
+                    <h6>Body: </h6>
+                    <ul class="alert alert-primary">
+                        <li>account_number</li>
+                        <li>account_bank [the bank code]</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
 
         <!-- <div class="call" id="call">
             <h1 class="">Call</h1>
