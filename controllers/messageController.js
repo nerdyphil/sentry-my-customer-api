@@ -194,4 +194,79 @@ exports.getBroadcasts = async (req, res) => {
       },
     });
   }
+};
+
+exports.getSingleBroadcast = async (req, res) => {
+  try {
+    const { broadcastId } = req.params;
+
+    const broadcast = await BroadcastMessage.findById(broadcastId);
+
+    if (!broadcast) {
+      return res.status(404).json({
+        success: false,
+        message: "Error getting broadcast message by id",
+        data: {
+          statusCode: 404
+        }
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Broadcast message gotten!",
+      data: {
+        statusCode: 200,
+        broadcast,
+      },
+    });
+  } catch (err) {
+    res.status(422).send({
+      success: false,
+      message: "Error fetching broadcast message!",
+      data: {
+        statusCode: 422,
+        error: err.message,
+      },
+    });
+  }
+};
+
+
+exports.deleteSingleBroadcast = async (req, res) => {
+  try {
+    const { broadcastId } = req.params;
+
+    const broadcast = await BroadcastMessage.findById(broadcastId);
+
+    if (!broadcast) {
+      return res.status(404).json({
+        success: false,
+        message: "Error getting broadcast message by id",
+        data: {
+          statusCode: 404
+        }
+      });
+    }
+
+    // Delete broadcast by ID
+    await BroadcastMessage.findByIdAndRemove(broadcast);
+
+    res.status(200).send({
+      success: true,
+      message: "Broadcast message successfully deleted",
+      data: {
+        statusCode: 200,
+      },
+    });
+  } catch (err) {
+    res.status(422).send({
+      success: false,
+      message: "Error fetching broadcast message!",
+      data: {
+        statusCode: 422,
+        error: err.message,
+      },
+    });
+  }
 }
