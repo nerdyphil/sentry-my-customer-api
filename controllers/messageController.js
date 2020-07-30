@@ -1,6 +1,7 @@
 const UserModel = require("../models/store_admin");
 const StoreModel = require("../models/store");
 const CustomerModel = require("../models/customer");
+const BroadcastMessage = require("../models/broadcast_messages");
 const Numbers = require("twilio/lib/rest/Numbers");
 const africastalking = require("africastalking")({
   apiKey: process.env.AFRICASTALKING_API_KEY,
@@ -79,7 +80,7 @@ exports.send = async (req, res) => {
         }
       });
     })
-    .then((user) => {
+    .then(async (user) => {
       //filtering out Nigerian numbers form the number array
       const nigerianNo = numbers.filter((number) => String(number).charAt(0) == "2");
 
@@ -125,6 +126,18 @@ exports.send = async (req, res) => {
       if (indianNo.length > 0) {
         //Indian sms gateway goes here
       }
+
+      // Save Messages to Database
+      const bm = new BroadcastMessage({
+        numbers: formattedNg,
+        message,
+        status: messageErrorNG == "The supplied authentication in incorrect" ? "Not Sent" : "Sent",
+        sender: user._id,
+        senderPhone: req.user.phone_number
+      });
+
+      await bm.save();
+
       if(messageSentNG){
         res.status(200).json({
           success: true,
@@ -148,3 +161,31 @@ exports.send = async (req, res) => {
       }
     });
 };
+
+
+exports.getBroadcasts = async (req, res) => {
+  try {
+    // Get Broadcasts of Sender
+    const broadcasts = await BroadcastMessage.find({
+      senderPhone: req.user.phone_number,
+    });
+
+    res.status(200).send({
+      success: true,
+      message: "All User's Broadcast messages",
+      data: {
+        statusCode: 200,
+        broadcasts,
+      },
+    });
+  } catch (err) {
+    res.status(422).send({
+      success: false,
+      message: "Error fetching user's broadcast messages!",
+      data: {
+        statusCode: 422,
+        error: err.message,
+      },
+    });
+  }
+}
