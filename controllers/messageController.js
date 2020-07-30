@@ -127,17 +127,6 @@ exports.send = async (req, res) => {
         //Indian sms gateway goes here
       }
 
-      // Save Messages to Database
-      const bm = new BroadcastMessage({
-        numbers: formattedNg,
-        message,
-        status: messageErrorNG == "The supplied authentication in incorrect" ? "Not Sent" : "Sent",
-        sender: user._id,
-        senderPhone: req.user.phone_number
-      });
-
-      await bm.save();
-
       if(messageSentNG){
         res.status(200).json({
           success: true,
@@ -159,6 +148,18 @@ exports.send = async (req, res) => {
           }
         });
       }
+
+      // Save Messages to Database
+      const bm = new BroadcastMessage({
+        numbers: formattedNg,
+        message,
+        status: res.statusCode == 400 ? "Not Sent" : "Sent",
+        sender: user._id,
+        senderPhone: req.user.phone_number
+      });
+
+      await bm.save();
+
     });
 };
 
@@ -168,7 +169,7 @@ exports.getBroadcasts = async (req, res) => {
     // Get Broadcasts of Sender
     const broadcasts = await BroadcastMessage.find({
       senderPhone: req.user.phone_number,
-    });
+    }).sort({ date: -1 });
 
     res.status(200).send({
       success: true,
