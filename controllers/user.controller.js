@@ -423,52 +423,53 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
 
 exports.updateBankDetails = (req, res) => {
   const identifier = req.user.phone_number;
-  let { account_number, account_name, bank } = req.body;
+  let { account_number, account_name, bank, currencyPreference } = req.body;
   User.findOne({ identifier })
-    .then(async user => {
+    .then(async (user) => {
       user.bank_details.account_number =
         account_number || user.bank_details.account_number;
       user.bank_details.bank = bank || user.bank_details.bank;
       user.bank_details.account_name =
         account_name || user.bank_details.account_name;
+      user.currencyPreference = currencyPreference || user.currencyPreference;
 
       user
         .save()
-        .then(result => {
+        .then((result) => {
           res.status(200).json({
             success: true,
             message: "Bank Details updated successfully",
             data: {
-              user: result
-            }
+              user: result,
+            },
           });
         })
-        .catch(error => {
+        .catch((error) => {
           res.status(500).json({
             status: false,
             message: error.message,
             error: {
               code: 500,
-              message: error.message
-            }
+              message: error.message,
+            },
           });
         });
     })
-    .catch(error => {
+    .catch((error) => {
       res.status(500).json({
         status: false,
         message: error.message,
         error: {
           code: 500,
-          message: error.message
-        }
+          message: error.message,
+        },
       });
     });
 };
 
 exports.updateStoreAdmin = async (req, res) => {
   try {
-    const update = { local: { ...req.body }, bank_details: { ...req.body } };
+    const update = { local: { ...req.body } };
     let user = await User.findOne({ _id: req.user._id });
     if (!user) {
       return res.status(401).json({
@@ -479,7 +480,6 @@ exports.updateStoreAdmin = async (req, res) => {
         },
       });
     }
-    console.log(update);
     _.merge(user, update);
     user = await user.save();
     return res.status(200).json({
@@ -1098,12 +1098,12 @@ exports.getSingleStoreAdmin = async (req, res) => {
         }, 0)
       ),
       revenueCount: trans.reduce((acc, cur) => {
-        if (cur.transaction.status == true) return acc + 1;
+        if (cur.transaction.status) return acc + 1;
         return acc;
       }, 0),
       revenueAmount: parseFloat(
         trans.reduce((acc, cur) => {
-          if (cur.transaction.status == true)
+          if (cur.transaction.status)
             return acc + (parseFloat(cur.transaction.amount) || 0);
           return acc;
         }, 0)
