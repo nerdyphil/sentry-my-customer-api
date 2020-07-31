@@ -7,10 +7,14 @@ exports.create = async (req, res) => {
   try {
     const api_key = signToken(
       {
-        user_role: "super_admin",
+        user_role: "store_admin",
       },
       "87600h"
     );
+    const payment = new PaymentModel({
+      transaction: req.params.transaction_id,
+      status: "unverified",
+    });
 
     const response = await axios.get(
       `https://api.flutterwave.com/v3/transactions/${payment.transaction}/verify`,
