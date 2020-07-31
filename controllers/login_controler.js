@@ -41,9 +41,9 @@ module.exports.errorHandler = (error, res) => {
 };
 
 //  TODO: Change expiry back to 1h
-module.exports.signToken = (data) =>
+module.exports.signToken = (data, expiresIn = "24h") =>
   jwt.sign(data, process.env.JWT_KEY, {
-    expiresIn: "24h",
+    expiresIn,
   });
 const loginAssistant = async ({ identifier, password }, res) => {
   let assistant = await AssistantModel.findOne({ phone_number: identifier })
