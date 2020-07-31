@@ -33,8 +33,8 @@ exports.create = async (req, res) => {
     }
     payment.data = response.data;
     await payment.save();
-    const message = `You have successfully made a payment of ${payment.data.amount} to a store on Mycustomer`;
-    const to = "+" + "2348162452124"; //payment.data.customer.phone_number;
+    const message = `You have successfully made a payment of ${payment.data.data.amount} to a store on Mycustomer`;
+    const to = "+" + payment.data.data.customer.phone_number;
     const sms = africastalking.SMS;
     try {
       const response = await sms.send({
