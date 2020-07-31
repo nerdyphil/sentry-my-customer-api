@@ -23,9 +23,11 @@ const storeAssistantSchema = new Schema(
     },
     user_role: { type: String, default: "store_assistant" },
     image: {
-      type: String,
-      required: true,
-      default: "https://res.cloudinary.com/dl8587hyx/image/upload/v1594302398/user-default_zcpir8.png",
+      path: {
+        type: String,
+        default: "https://res.cloudinary.com/dl8587hyx/image/upload/v1594302398/user-default_zcpir8.png"
+      },
+      filename: String
     },
   },
   { timestamps: true }
