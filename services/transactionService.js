@@ -10,7 +10,7 @@ module.exports = {
     let transactions;
     if (limit) {
       transactions = await Transaction.find(params)
-        .populate({ path: "store_ref_id customer_ref_id" })
+        .populate({ path: "store_ref_id customer_ref_id store_admin_ref" })
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec();
