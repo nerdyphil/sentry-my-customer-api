@@ -11,4 +11,8 @@ router.post("/message/send", auth, messageController.send);
 
 router.get("/message/get", auth, messageController.getBroadcasts);
 
+router.get("/message/getSingle/:broadcastId", auth, messageController.getSingleBroadcast);
+
+router.delete("/message/deleteSingle/:broadcastId", auth, messageController.deleteSingleBroadcast);
+
 module.exports = router;
