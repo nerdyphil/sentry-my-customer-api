@@ -37,9 +37,11 @@ exports.getAllStores = async (req, res) => {
     if (req.user.user_role === "super_admin") {
       stores = await storeService.getAllStores({});
     } else {
-      stores = (await storeService.getAllStores({
-        store_admin_ref: req.user.store_admin_ref,
-      })).map(elem => elem[0]);
+      stores = (
+        await storeService.getAllStores({
+          store_admin_ref: req.user.store_admin_ref,
+        })
+      ).map((elem) => elem[0]);
     }
     res.status(200).json({
       success: true,
@@ -81,11 +83,35 @@ exports.getStore = async (req, res) => {
     );
     let assistants = await Assistants.find({ store_ref_id: store._id });
     store = { tagline: "Not Set", ...store.toObject(), customers, assistants };
+    const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const s_t = (month) => {
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      t.setMonth(month, 1);
+      const s = new Date();
+      s.setMonth(month, 31);
+      s.setHours(24, 0, 0, 0);
+      return {
+        createdAt: {
+          $gte: t,
+          $lt: s,
+        },
+      };
+    };
+    const transactionChart = await months.reduce(async (acc, month) => {
+      acc = await acc;
+      const transactions = await TransactionModel.countDocuments({
+        store_ref_id: store._id,
+        ...s_t(month),
+      });
+      return [...acc, transactions];
+    }, []);
     return res.status(200).json({
       success: true,
       message: "Operation successful",
       data: {
         store,
+        transactionChart,
       },
     });
   } catch (error) {
