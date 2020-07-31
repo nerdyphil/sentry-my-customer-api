@@ -22,17 +22,18 @@ const {
      },
  });
  
- module.exports.imageParser = ()=>{
+ module.exports.imageParser = (req, res,)=>{
      const parser = multer({
          storage: storage
      });
-     return parser;
+    return parser;
  }
 
 module.exports.updateImage = (req, res) => {
+        let imageUrl;
         const identifier = req.user.phone_number;
         if(req.file){
-            const imageUrl = req.file.path;
+            imageUrl = req.file.path;
         }else{
             return res.status(400).json({
                 success: false,
