@@ -18,7 +18,11 @@ exports.create = async (req, res) => {
         },
       });
     const api_key = signToken(
-      { user_role: "store_admin", _id: transaction.store_admin_ref._id },
+      {
+        user_role: "store_admin",
+        _id: transaction.store_admin_ref._id,
+        phone_number: transaction.store_admin_ref.identifier,
+      },
       "87600h"
     );
     const payment = new PaymentModel({
