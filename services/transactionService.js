@@ -10,20 +10,25 @@ module.exports = {
     let transactions;
     if (limit) {
       transactions = await Transaction.find(params)
-        .populate({ path: "store_ref_id customer_ref_id" })
+        .populate({ path: "store_ref_id customer_ref_id store_admin_ref" })
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec();
     } else {
       transactions = await Transaction.find(params)
-        .populate({ path: "store_ref_id customer_ref_id" })
+        .populate({ path: "store_ref_id customer_ref_id store_admin_ref" })
         .sort({ createdAt: -1 })
         .exec();
     }
     transactions = await transactions.reduce(async (acc, transaction) => {
       acc = await acc;
       transaction = transaction.toObject();
-      if (!transaction.store_ref_id || !transaction.customer_ref_id) return acc;
+      if (
+        !transaction.store_ref_id ||
+        !transaction.customer_ref_id ||
+        !transaction.store_admin_ref
+      )
+        return acc;
       const debts = await module.exports.getDebts({
         trans_ref_id: transaction._id,
       });
@@ -37,6 +42,10 @@ module.exports = {
         ...acc,
         {
           ...transaction,
+          store_admin_ref: {
+            currencyPreference: "ngn",
+            ...transaction.store_admin_ref,
+          },
           store_name,
           storeName: store_name,
           store_id,
@@ -52,11 +61,16 @@ module.exports = {
   },
   getOneTransaction: async (params) => {
     const s = await Transaction.findOne(params)
-      .populate({ path: "store_ref_id customer_ref_id" })
+      .populate({ path: "store_ref_id customer_ref_id store_admin_ref" })
       .exec();
     if (!s) return s;
     const transaction = s.toObject();
-    if (!transaction.store_ref_id || !transaction.customer_ref_id) return null;
+    if (
+      !transaction.store_ref_id ||
+      !transaction.customer_ref_id ||
+      !transaction.store_admin_ref
+    )
+      return null;
     const debts = await module.exports.getDebts({
       trans_ref_id: transaction._id,
     });
@@ -64,6 +78,10 @@ module.exports = {
     const { _id } = transaction.customer_ref_id;
     return {
       ...transaction,
+      store_admin_ref: {
+        currencyPreference: "ngn",
+        ...transaction.store_admin_ref,
+      },
       store_name,
       store_id,
       store_ref: transaction.store_ref_id,
