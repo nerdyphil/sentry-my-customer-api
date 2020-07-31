@@ -30,10 +30,11 @@ const {
  }
 
 module.exports.updateImage = (req, res) => {
-        let imageUrl;
+        let imageUrl, filename;
         const identifier = req.user.phone_number;
         if(req.file){
             imageUrl = req.file.path;
+            filename = req.file.filename;
         }else{
             return res.status(400).json({
                 success: false,
@@ -47,7 +48,9 @@ module.exports.updateImage = (req, res) => {
         //find the store admin
         try{
             User.findOne({ identifier }).then(async user =>{
-                user.image = imageUrl;
+                cloudinary.uploader.destroy(user.image.filename);
+                user.image.path = imageUrl;
+                user.image.filename = filename;
                 await user.save();
                 return res.status(200).json({
                     success: true,
