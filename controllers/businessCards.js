@@ -28,7 +28,15 @@ module.exports = () => async (req, res) => {
     //  Iterate through stores and create cards
     const data = userStores.map((store) => {
       const { store_name, phone_number, email, shop_address } = store;
-
+      if (!store.store_admin_ref) {
+        store.store_admin_ref = {
+          local: {
+            first_name: "",
+            last_name: "",
+            phone_number: "",
+          },
+        };
+      }
       return {
         ownerName: `${store.store_admin_ref.local.first_name} ${store.store_admin_ref.local.last_name}`,
         storeName: store_name,
