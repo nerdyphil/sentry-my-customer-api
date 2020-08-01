@@ -285,15 +285,15 @@ exports.send = async (req, res) => {
       if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
         return res.status(200).json({
           success: false,
-          Message: "Invalid Phone Number",
+          message: "Invalid Phone Number",
         });
       }
     } catch (error) {
-      const Message =
+      const message =
         typeof error === "string" ? error : "Could not send reminder";
       return res.status(200).json({
         success: true, // This should be false. Only made it true so fe sees the error message
-        Message,
+        message,
         error: {
           statusCode: 500,
         },
