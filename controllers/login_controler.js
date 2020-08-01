@@ -154,6 +154,7 @@ module.exports.loginUser = async (req, res) => {
               _id: assistant._id,
               stores: [await StoreModel.findOne({ _id: assistant.store_id })],
               api_token: apiToken,
+              image: assistant.image
             },
           },
         });
