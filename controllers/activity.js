@@ -36,7 +36,7 @@ exports.retrieve = async (req, res) => {
         store_assistant_ref: req.user._id
       }).sort({ time: 1 });
     } else {
-      activity = await Activity.findOne({
+      activity = await Activity.find({
         store_admin_ref: req.user._id
       }).sort({ time: 1 });
     }
@@ -52,7 +52,7 @@ exports.retrieve = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Activity retrieved successfully.",
-        data: [activity]
+        data: activity
       });
     }
   } catch (error) {
@@ -65,7 +65,7 @@ exports.populate = async (req, res) => {
     const { activity } = req.body;
     if (activity) {
       await Activity.insertMany(activity);
-      const all = await Activity.findOne({
+      const all = await Activity.find({
         $or: [
           {
             store_assistant_ref: req.user._id
@@ -78,10 +78,10 @@ exports.populate = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Logs synced successfully.",
-        data: [all]
+        data: all
       });
     }
   } catch (error) {
     return errorHandler(error, res);
   }
-};
+}
