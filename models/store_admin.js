@@ -64,7 +64,10 @@ const storeAdminSchema = new mongoose.Schema(
       required: false,
     },
     image: { 
-      path:{ type: String, default: "https://res.cloudinary.com/dl8587hyx/image/upload/v1594302398/user-default_zcpir8.png"},
+      path: {
+        type: String,
+        default: "https://res.cloudinary.com/htstfkxnm/image/upload/v1596296158/mycustomer-profile-photos/user-2517433_640_wbudxi.png"
+      },
       filename:String
   },
 },

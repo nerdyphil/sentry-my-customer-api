@@ -22,7 +22,7 @@ const {
      },
  });
  
- module.exports.imageParser = (req, res,)=>{
+ module.exports.imageParser = (req, res)=>{
      const parser = multer({
          storage: storage
      });
