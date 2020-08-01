@@ -285,7 +285,7 @@ exports.send = async (req, res) => {
       if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
         return res.status(200).json({
           success: false,
-          Message: "Invalid Phone Number",
+          message: "Invalid Phone Number",
         });
       }
     } catch (error) {
