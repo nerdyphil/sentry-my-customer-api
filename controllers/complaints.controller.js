@@ -21,6 +21,22 @@ exports.findAll = async (req, res) => {
       data: {
         statusCode: 200,
         complaints,
+        new: await Complaint.countDocuments({
+          storeOwnerPhone: req.user.phone_number,
+          status: "New",
+        }),
+        pending: await Complaint.countDocuments({
+          storeOwnerPhone: req.user.phone_number,
+          status: "Pending",
+        }),
+        resolved: await Complaint.countDocuments({
+          storeOwnerPhone: req.user.phone_number,
+          status: "Resolved",
+        }),
+        closed: await Complaint.countDocuments({
+          storeOwnerPhone: req.user.phone_number,
+          status: "Closed",
+        }),
       },
     });
   } catch (error) {
@@ -214,12 +230,10 @@ exports.newComplaint = async (req, res) => {
   // Validate body request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res
-      .status(400)
-      .json({
-        message: "fields must be at least 11 characters long",
-        errors: errors.array(),
-      });
+    return res.status(400).json({
+      message: "fields must be at least 11 characters long",
+      errors: errors.array(),
+    });
   }
 
   // Deconstruct req body
@@ -313,6 +327,20 @@ exports.getAllComplaintsInDB = async (req, res) => {
       success: true,
       message: "All complaints in the database!",
       data: complaints,
+      complaintCounts: {
+        new: await Complaint.countDocuments({
+          status: "New",
+        }),
+        pending: await Complaint.countDocuments({
+          status: "Pending",
+        }),
+        resolved: await Complaint.countDocuments({
+          status: "Resolved",
+        }),
+        closed: await Complaint.countDocuments({
+          status: "Closed",
+        }),
+      },
     });
   } catch (err) {
     return res.status(500).json({

@@ -5,7 +5,7 @@ const assistantService = require("./assistantService");
 
 module.exports = {
   getAllStores: async (params) => {
-    let stores = await Store.find(params);
+    let stores = await Store.find(params).populate({ path: "store_admin_ref" }).exec();
     stores = await stores.reduce(async (acc, cur) => {
       acc = await acc;
       let customers = await customerService.getCustomers({
