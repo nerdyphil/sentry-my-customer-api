@@ -59,9 +59,13 @@ exports.getAllStores = async (req, res) => {
 
 exports.getStore = async (req, res) => {
   try {
+    //find store and fill in data og store admin
     let store = await Store.findOne({
       _id: req.params.store_id,
-    });
+    }).populate({
+      path: "store_admin_ref"
+    }).exec();
+
     if (!store) {
       return res.status(404).json({
         success: false,
@@ -111,6 +115,7 @@ exports.getStore = async (req, res) => {
       message: "Operation successful",
       data: {
         store,
+        currency: store.store_admin_ref.currencyPreference,
         transactionChart,
       },
     });
