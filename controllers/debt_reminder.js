@@ -150,7 +150,16 @@ exports.getById = async (req, res) => {
       debt = await Transaction.findOne({
         type: "debt",
         _id: req.params.transactionId,
-      });
+      }).populate({ path: "store_admin_ref" }).exec();
+      return res.status(200).json({
+            success: true,
+            message: "found",
+            data: {
+              statusCode: 200,
+              debt,
+              currency: debt.store_admin_ref.currencyPreference
+            }
+          });
     } else {
       debt = await Transaction.findOne({
         _id: req.params.transactionId,
