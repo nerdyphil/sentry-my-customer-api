@@ -290,7 +290,7 @@ exports.newComplaint = async (req, res) => {
       subject,
       message,
       storeOwner: storeOwner._id,
-      storeOwnerPhone: req.user.phone_number,
+      storeOwnerPhone: storeOwner.identifier,
     });
 
     // urlStoreOwner.complaints.push(newComplaint);
