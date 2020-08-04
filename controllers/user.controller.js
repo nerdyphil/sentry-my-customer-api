@@ -15,6 +15,7 @@ const DataUri = require("datauri/parser");
 const path = require("path");
 const { errorHandler } = require("./login_controler");
 const { transactionService } = require("../services");
+const storeAssistant = require("../models/storeAssistant");
 
 exports.validate = method => {
   switch (method) {
@@ -515,53 +516,59 @@ exports.updatePassword = (req, res) => {
       }
     });
   };
-
-  try {
     const { old_password, new_password, confirm_password } = req.body;
     const identifier = req.user.phone_number;
+    let user;
+    const store_admin = User.findOne({ identifier });
+    const store_assistant = storeAssistant.findOne({ phone_number: identifier });
+    if(store_admin) user = store_admin;
+    else user = store_assistant;
 
-    User.findOne({ identifier })
-      .then(user => {
-        if (confirm_password !== new_password)
-          return res.json({
-            sucess: false,
-            message: "confirm_password should match new_password",
-            error: {
-              statusCode: 400
-            }
-          });
+    if (confirm_password !== new_password){
+      return res.status(400).json({
+        sucess: false,
+        message: "confirm password should match new password",
+        error: {
+          statusCode: 400,
+          message: "confirm password should match new password",
+        },
+      });
+    }
+    changePassword(user, res);
 
-        bcrypt.compare(old_password, user.local.password, function(
-          err,
-          result
-        ) {
-          if (err) {
-            return errorResponse(err);
-          }
-          if (!result)
-            return errorResponse({ message: "Passwords don't match" });
-          bcrypt.hash(new_password, 10, (err, hash) => {
-            user.local.password = hash;
-
-            user
-              .save()
-              .then(result => {
-                res.status(200).json({
-                  success: true,
-                  message: "Password reset successful",
-                  data: {
-                    statusCode: 200,
-                    message: "Password reset successful"
-                  }
-                });
-              })
-              .catch(err => errorResponse(err));
-          });
+  async function changePassword(user, res){
+    //identifier whether user is admin or assistant
+    async function whichUser(user){
+      if(user.local) return user.local.password;
+      else return user.password
+    }
+    bcrypt.compare(old_password, whichUser(user), function (err,result) {
+      if (err) {
+        return errorResponse(err);
+      }
+      if (!result)
+        return errorResponse({
+          message: "Passwords don't match"
         });
-      })
-      .catch(err => errorResponse(err));
-  } catch (error) {
-    errorResponse(error);
+    bcrypt.hash(new_password, 10, (err, hash) => {
+     if (user.local) user.local.password = hash;
+     else if (user.password) user.password = hash;
+
+      user
+        .save()
+        .then((result) => {
+          res.status(200).json({
+            success: true,
+            message: "Password reset successful",
+            data: {
+              statusCode: 200,
+              message: "Password reset successful",
+            },
+          });
+        })
+        .catch((err) => errorResponse(err));
+    });
+    });
   }
 };
 
