@@ -22,6 +22,14 @@ const storeAssistantSchema = new Schema(
       ref: "mycustomer_store",
     },
     user_role: { type: String, default: "store_assistant" },
+    resetPasswordToken: {
+        type: String,
+        required: false,
+      },
+      resetPasswordExpires: {
+        type: Date,
+        required: false,
+      },
     image: {
       path: {
         type: String,
