@@ -16,7 +16,7 @@ exports.findAll = async (req, res) => {
     if (req.user.user_role === "store_assistant") {
       complaints = await Complaint.find({
         store_id: req.user.store_id,
-      });
+      }).sort({date: -1});
       countData = {
         new: await Complaint.countDocuments({
           store_id: req.user.store_id,
@@ -38,7 +38,7 @@ exports.findAll = async (req, res) => {
     } else {
       complaints = await Complaint.find({
         storeOwnerPhone: req.user.phone_number,
-      });
+      }).sort({date: -1});
       countData = {
         new: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
@@ -344,7 +344,7 @@ exports.getAllComplaintsInDB = async (req, res) => {
     }
 
     // All complaints
-    const complaints = await Complaint.find({});
+    const complaints = await Complaint.find({}).sort({date: -1});
 
     // If complaint don't exist
     if (!complaints)
