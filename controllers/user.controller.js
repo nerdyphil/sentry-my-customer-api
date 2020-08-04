@@ -17,12 +17,12 @@ const { errorHandler } = require("./login_controler");
 const { transactionService } = require("../services");
 const storeAssistant = require("../models/storeAssistant");
 
-exports.validate = (method) => {
+exports.validate = method => {
   switch (method) {
     case "body": {
       return [
         body("phone_number").isInt(),
-        body("name").matches(/^[0-9a-zA-Z ]{2,}$/, "i"),
+        body("name").matches(/^[0-9a-zA-Z ]{2,}$/, "i")
       ];
     }
 
@@ -32,7 +32,7 @@ exports.validate = (method) => {
         body("new_password")
           .isString()
           .isLength({ min: 6 })
-          .withMessage("Password must be 6 characters long"),
+          .withMessage("Password must be 6 characters long")
       ];
 
     case "store_admin": {
@@ -40,7 +40,7 @@ exports.validate = (method) => {
         body("phone_number").isInt(),
         body("first_name").isString(),
         body("last_name").isString(),
-        body("email").isEmail(),
+        body("email").isEmail()
       ];
     }
   }
@@ -104,14 +104,16 @@ const util = {
     }
 
     return data;
-  },
+  }
 };
 // Get all Users.
 exports.allStoreAssistant = async (req, res) => {
   try {
     let assistants;
     if (req.user.user_role === "super_admin") {
-      assistants = await StoreAssistant.find({}).select("-password").exec();
+      assistants = await StoreAssistant.find({})
+        .select("-password")
+        .exec();
     } else {
       assistants = await StoreAssistant.find({ store_admin_ref: req.user._id })
         .select("-password")
@@ -123,8 +125,8 @@ exports.allStoreAssistant = async (req, res) => {
       data: {
         status: 200,
         message: "Store assistants retrieved successfully.",
-        assistants,
-      },
+        assistants
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -142,8 +144,8 @@ exports.newStoreAdmin = async (req, res) => {
         message: "User already exist.",
         data: {
           status: 200,
-          message: "User already exist.",
-        },
+          message: "User already exist."
+        }
       });
     }
     user = await User.create({
@@ -152,8 +154,8 @@ exports.newStoreAdmin = async (req, res) => {
         name,
         phone_number,
         email,
-        password,
-      },
+        password
+      }
     });
     return res.status(201).json({
       success: true,
@@ -161,8 +163,8 @@ exports.newStoreAdmin = async (req, res) => {
       data: {
         status: 201,
         message: "User created successfully.",
-        user,
-      },
+        user
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -179,7 +181,7 @@ exports.newStoreAssistant = async (req, res) => {
     } else {
       store = await Store.findOne({
         store_admin_ref: req.user._id,
-        _id: store_id,
+        _id: store_id
       });
     }
     if (!store) {
@@ -188,21 +190,29 @@ exports.newStoreAssistant = async (req, res) => {
         message: "Store does not exist.",
         data: {
           status: 404,
-          message: "Store does not exist.",
-        },
+          message: "Store does not exist."
+        }
       });
     }
     let store_assistant = await StoreAssistant.findOne({
       store_admin_ref: req.user._id,
-      phone_number,
+      phone_number
     });
     if (store_assistant) {
       return res.status(409).json({
         success: false,
         message: "assistant already exists",
         error: {
-          statusCode: 409,
-        },
+          statusCode: 409
+        }
+      });
+    } else if (req.user.phone_number == phone_number) {
+      return res.status(409).json({
+        success: false,
+        message: "You can't be an assistant to yourself",
+        error: {
+          statusCode: 409
+        }
       });
     }
     store_assistant = await StoreAssistant.create({
@@ -211,7 +221,7 @@ exports.newStoreAssistant = async (req, res) => {
       phone_number,
       store_id,
       email,
-      password: await bcrypt.hash(password, 10),
+      password: await bcrypt.hash(password, 10)
     });
     await store.save();
     return res.status(201).json({
@@ -220,8 +230,8 @@ exports.newStoreAssistant = async (req, res) => {
       data: {
         status: 201,
         message: "StoreAssistant created successfully.",
-        store_assistant,
-      },
+        store_assistant
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -233,7 +243,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
   const data = {};
   try {
     const store_assistant = await StoreAssistant.findOne({
-      _id: req.params.assistant_id,
+      _id: req.params.assistant_id
     })
       .select("-password")
       .exec();
@@ -242,8 +252,8 @@ exports.getSingleStoreAssistant = async (req, res) => {
         success: false,
         message: "cannot find assistant",
         error: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     data.user = store_assistant;
@@ -263,17 +273,17 @@ exports.getSingleStoreAssistant = async (req, res) => {
     data.amountForCurrentMonth = 0;
     data.amountForPreviousMonth = 0;
     const assistantstore_customers = await customersModel.find({
-      store_ref_id: assistantStore_id,
+      store_ref_id: assistantStore_id
     });
-    assistantstore_customers.forEach(async (customer) => {
+    assistantstore_customers.forEach(async customer => {
       data.customerCount += 1;
       customerTransactions = await transactionsModel
         .find({
-          customer_ref_id: customer._id,
+          customer_ref_id: customer._id
         })
         .populate({ path: "store_ref_id" })
         .exec();
-      customerTransactions.forEach((transaction) => {
+      customerTransactions.forEach(transaction => {
         if (transaction.assistant_inCharge == store_assistant._id) {
           data.transactionCount += 1;
           let obj = {};
@@ -346,7 +356,7 @@ exports.getSingleStoreAssistant = async (req, res) => {
       success: true,
       status: 200,
       message: "Store Assistant data.",
-      data,
+      data
     });
   } catch (error) {
     errorHandler(error, res);
@@ -359,15 +369,15 @@ exports.updateSingleStoreAssistant = async (req, res) => {
   try {
     let store_assistant = await StoreAssistant.findOne({
       _id: req.params.assistant_id,
-      store_admin_ref: req.user._id,
+      store_admin_ref: req.user._id
     });
     if (!store_assistant) {
       return res.status(404).json({
         success: false,
         message: "cannot find assistant",
         error: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     store_assistant.name = name || store_assistant.name;
@@ -381,8 +391,8 @@ exports.updateSingleStoreAssistant = async (req, res) => {
       data: {
         status: 201,
         message: "Store Assistant updated successfully.",
-        store_assistant,
-      },
+        store_assistant
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -394,15 +404,15 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
   try {
     let store_assistant = await StoreAssistant.findOne({
       _id: req.params.assistant_id,
-      store_admin_ref: req.user._id,
+      store_admin_ref: req.user._id
     });
     if (!store_assistant) {
       return res.status(404).json({
         success: false,
         message: "cannot find assistant",
         error: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     await store_assistant.remove();
@@ -412,8 +422,8 @@ exports.deleteSingleStoreAssistant = async (req, res) => {
       error: {
         statusCode: 200,
         message: "Assistant deleted successfully.",
-        data: store_assistant,
-      },
+        data: store_assistant
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -425,7 +435,7 @@ exports.updateBankDetails = (req, res) => {
   const identifier = req.user.phone_number;
   let { account_number, account_name, bank, currencyPreference } = req.body;
   User.findOne({ identifier })
-    .then(async (user) => {
+    .then(async user => {
       user.bank_details.account_number =
         account_number || user.bank_details.account_number;
       user.bank_details.bank = bank || user.bank_details.bank;
@@ -435,34 +445,34 @@ exports.updateBankDetails = (req, res) => {
 
       user
         .save()
-        .then((result) => {
+        .then(result => {
           res.status(200).json({
             success: true,
             message: "Bank Details updated successfully",
             data: {
-              user: result,
-            },
+              user: result
+            }
           });
         })
-        .catch((error) => {
+        .catch(error => {
           res.status(500).json({
             status: false,
             message: error.message,
             error: {
               code: 500,
-              message: error.message,
-            },
+              message: error.message
+            }
           });
         });
     })
-    .catch((error) => {
+    .catch(error => {
       res.status(500).json({
         status: false,
         message: error.message,
         error: {
           code: 500,
-          message: error.message,
-        },
+          message: error.message
+        }
       });
     });
 };
@@ -476,8 +486,8 @@ exports.updateStoreAdmin = async (req, res) => {
         success: false,
         message: "Unauthorized" + req.user._id,
         error: {
-          statusCode: 401,
-        },
+          statusCode: 401
+        }
       });
     }
     _.merge(user, update);
@@ -486,8 +496,8 @@ exports.updateStoreAdmin = async (req, res) => {
       success: true,
       message: "account updated",
       data: {
-        store_admin: user,
-      },
+        store_admin: user
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -495,15 +505,15 @@ exports.updateStoreAdmin = async (req, res) => {
 };
 
 exports.updatePassword = (req, res) => {
-  const errorResponse = (err) => {
+  const errorResponse = err => {
     return res.status(500).json({
       success: false,
       message: "Error updating password",
       status: 500,
       error: {
         statusCode: 500,
-        message: err.message,
-      },
+        message: err.message
+      }
     });
   };
     const { old_password, new_password, confirm_password } = req.body;
@@ -563,21 +573,21 @@ exports.updatePassword = (req, res) => {
 };
 
 exports.forgot = async (req, res) => {
-  await crypto.randomBytes(20, function (err, buf) {
+  await crypto.randomBytes(20, function(err, buf) {
     let token = buf.toString("hex");
     if (err) {
       next(err);
     }
 
-    User.findOne({ identifier: req.body.phone_number }, function (err, user) {
+    User.findOne({ identifier: req.body.phone_number }, function(err, user) {
       if (err) {
         return res.status(404).json({
           success: "false",
           message: "Error finding user in DB",
           data: {
             statusCode: 404,
-            error: err.message,
-          },
+            error: err.message
+          }
         });
       }
       if (!user) {
@@ -586,30 +596,30 @@ exports.forgot = async (req, res) => {
           message: "User Not Found. Make sure you inputted right phone number",
           data: {
             statusCode: 404,
-            error: "User Dosen't Exist",
-          },
+            error: "User Dosen't Exist"
+          }
         });
       }
       user.resetPasswordToken = token;
       user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
       user.save(
-        (err) => {
+        err => {
           if (err) {
             return res.status(404).json({
               success: "false",
               message: "Error saving user",
               data: {
                 statusCode: 404,
-                error: err.message,
-              },
+                error: err.message
+              }
             });
           }
           let smtpTransport = nodemailer.createTransport({
             service: "gmail",
             auth: {
               user: "openhand95@gmail.com",
-              pass: "Juwon@1234",
-            },
+              pass: "Juwon@1234"
+            }
           });
           let mailOptions = {
             to: user.local.email,
@@ -623,17 +633,17 @@ exports.forgot = async (req, res) => {
               "/store_admin/forgot-password/" +
               token +
               "\n\n" +
-              "If you did not request this, please ignore this email and your password will remain unchanged.\n",
+              "If you did not request this, please ignore this email and your password will remain unchanged.\n"
           };
-          smtpTransport.sendMail(mailOptions, function (err, info) {
+          smtpTransport.sendMail(mailOptions, function(err, info) {
             if (err) {
               return res.status(400).json({
                 success: "false",
                 message: "Error sending email.Possibly User has no email",
                 data: {
                   statusCode: 400,
-                  error: err.message,
-                },
+                  error: err.message
+                }
               });
             }
             return res.status(200).json({
@@ -644,8 +654,8 @@ exports.forgot = async (req, res) => {
                 message:
                   "An e-mail has been sent to " +
                   user.local.email +
-                  " with further instructions.",
-              },
+                  " with further instructions."
+              }
             });
             // if (err) {
             //   next(err)
@@ -653,13 +663,13 @@ exports.forgot = async (req, res) => {
             // res.redirect('/store_admin/forgot-password');
           });
         },
-        (user) => {
+        user => {
           let smtpTransport = nodemailer.createTransport({
             service: "gmail",
             auth: {
               user: "openhand95@gmail.com",
-              pass: "Juwon@1234",
-            },
+              pass: "Juwon@1234"
+            }
           });
           let mailOptions = {
             to: user.local.email,
@@ -673,17 +683,17 @@ exports.forgot = async (req, res) => {
               "/reset/" +
               token +
               "\n\n" +
-              "If you did not request this, please ignore this email and your password will remain unchanged.\n",
+              "If you did not request this, please ignore this email and your password will remain unchanged.\n"
           };
-          smtpTransport.sendMail(mailOptions, function (err, info) {
+          smtpTransport.sendMail(mailOptions, function(err, info) {
             if (err) {
               return res.status(400).json({
                 success: "false",
                 message: "Error sending email. Possibly User has no email",
                 data: {
                   statusCode: 400,
-                  error: err.message,
-                },
+                  error: err.message
+                }
               });
             }
             return res.status(200).json({
@@ -694,8 +704,8 @@ exports.forgot = async (req, res) => {
                 message:
                   "An e-mail has been sent to " +
                   user.local.email +
-                  " with further instructions.",
-              },
+                  " with further instructions."
+              }
             });
             // if (err) {
             //   next(err)
@@ -715,25 +725,25 @@ exports.tokenreset = async (req, res) => {
       message: "Password Can't Be Empty",
       data: {
         statusCode: 400,
-        error: "password is required",
-      },
+        error: "password is required"
+      }
     });
   }
   const password = await bcrypt.hash(req.body.password, 10);
   User.findOne(
     {
       resetPasswordToken: req.params.token,
-      resetPasswordExpires: { $gt: Date.now() },
+      resetPasswordExpires: { $gt: Date.now() }
     },
-    function (err, user) {
+    function(err, user) {
       if (err) {
         return res.status(400).json({
           success: "false",
           message: "Error From DB",
           data: {
             statusCode: 400,
-            error: err.message,
-          },
+            error: err.message
+          }
         });
       }
       if (!user) {
@@ -742,31 +752,31 @@ exports.tokenreset = async (req, res) => {
           message: "Password Reset Token Is Invalid or has expired",
           data: {
             statusCode: 400,
-            error: "Invalid Token",
-          },
+            error: "Invalid Token"
+          }
         });
       }
       user.local.password = password;
       user.resetPasswordToken = undefined; //turn reset password to something not needed
       user.resetPasswordExpires = undefined;
 
-      user.save(function (err) {
+      user.save(function(err) {
         if (err) {
           return res.status(400).json({
             success: "false",
             message: "Couldn't save to DB",
             data: {
               statusCode: 400,
-              error: err.message,
-            },
+              error: err.message
+            }
           });
         }
         let smtpTransport = nodemailer.createTransport({
           service: "gmail",
           auth: {
             user: "openhand95@gmail.com",
-            pass: "Juwon@1234",
-          },
+            pass: "Juwon@1234"
+          }
         });
         let mailOptions = {
           to: user.local.email,
@@ -776,9 +786,9 @@ exports.tokenreset = async (req, res) => {
             "Hello,\n\n" +
             "This is a confirmation that the password for your account " +
             user.email +
-            " has just been changed.\n",
+            " has just been changed.\n"
         };
-        smtpTransport.sendMail(mailOptions, function (err) {
+        smtpTransport.sendMail(mailOptions, function(err) {
           if (err) {
             return res.status(200).json({
               success: "false",
@@ -786,8 +796,8 @@ exports.tokenreset = async (req, res) => {
                 "Password Changed Succesfully. But Error Sending Email Notification",
               data: {
                 statusCode: 200,
-                error: err.message,
-              },
+                error: err.message
+              }
             });
           }
           return res.status(200).json({
@@ -795,8 +805,8 @@ exports.tokenreset = async (req, res) => {
             message: "Email Notification Sent",
             data: {
               statusCode: 200,
-              message: "Password Changed Succesfully",
-            },
+              message: "Password Changed Succesfully"
+            }
           });
         });
       });
@@ -821,13 +831,13 @@ exports.updatePicture = (req, res) => {
   // upload the image using cloudinary
   uploader
     .upload(file)
-    .then((result) => {
+    .then(result => {
       // update the user image to this image
       User.updateOne(
         { identifier: req.user.phone_number },
         { $set: { image: result.url } }
       )
-        .then((dbResult) => {
+        .then(dbResult => {
           // if the user is not found throw an error
           if (!dbResult.n) {
             return responseManager.failure(
@@ -843,17 +853,17 @@ exports.updatePicture = (req, res) => {
             200
           );
         })
-        .catch((err) => {
+        .catch(err => {
           console.log(err);
           return responseManager.failure(res, {
-            message: "Picture not set. Unexpected error occured",
+            message: "Picture not set. Unexpected error occured"
           });
         });
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
       return responseManager.failure(res, {
-        message: "Picture not set. Unexpected error occured",
+        message: "Picture not set. Unexpected error occured"
       });
     });
 };
@@ -871,8 +881,8 @@ exports.deactivateUser = async (req, res) => {
       message: "User not found",
       error: {
         statusCode: 404,
-        message: "User not found",
-      },
+        message: "User not found"
+      }
     });
   }
 
@@ -883,8 +893,8 @@ exports.deactivateUser = async (req, res) => {
       message: "Unauthorised, resource can only accessed by Super Admin",
       error: {
         statusCode: 401,
-        message: "Unauthorised, resource can only accessed by Super Admin",
-      },
+        message: "Unauthorised, resource can only accessed by Super Admin"
+      }
     });
   }
 
@@ -896,8 +906,8 @@ exports.deactivateUser = async (req, res) => {
         message: "User not found",
         error: {
           statusCode: 404,
-          message: "User not found",
-        },
+          message: "User not found"
+        }
       });
     }
     fuser.local.is_active = false;
@@ -905,7 +915,7 @@ exports.deactivateUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "User Deactivated",
-      fuser,
+      fuser
     });
   } catch (err) {
     return res.status(500).json({
@@ -913,8 +923,8 @@ exports.deactivateUser = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: error,
-      },
+        message: error
+      }
     });
   }
 };
@@ -932,8 +942,8 @@ exports.activateUser = async (req, res) => {
       message: "User not found",
       error: {
         statusCode: 404,
-        message: "User not found",
-      },
+        message: "User not found"
+      }
     });
   }
 
@@ -944,8 +954,8 @@ exports.activateUser = async (req, res) => {
       message: "Unauthorised, resource can only accessed by Super Admin",
       error: {
         statusCode: 401,
-        message: "Unauthorised, resource can only accessed by Super Admin",
-      },
+        message: "Unauthorised, resource can only accessed by Super Admin"
+      }
     });
   }
 
@@ -957,8 +967,8 @@ exports.activateUser = async (req, res) => {
         message: "User not found",
         error: {
           statusCode: 404,
-          message: "User not found",
-        },
+          message: "User not found"
+        }
       });
     }
     fuser.local.is_active = true;
@@ -966,7 +976,7 @@ exports.activateUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "User Activated",
-      fuser,
+      fuser
     });
   } catch (err) {
     return res.status(500).json({
@@ -974,8 +984,8 @@ exports.activateUser = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: error,
-      },
+        message: error
+      }
     });
   }
 };
@@ -989,8 +999,8 @@ exports.getAllStoreAdmin = async (req, res, next) => {
       message: "Unauthorised, resource can only accessed by Super Admin",
       error: {
         statusCode: 401,
-        message: "Unauthorised, resource can only accessed by Super Admin",
-      },
+        message: "Unauthorised, resource can only accessed by Super Admin"
+      }
     });
   }
 
@@ -1005,8 +1015,8 @@ exports.getAllStoreAdmin = async (req, res, next) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: error,
-      },
+        message: error
+      }
     });
   }
 };
@@ -1018,8 +1028,8 @@ exports.getSingleStoreAdmin = async (req, res) => {
         success: false,
         message: "not enough permissions",
         error: {
-          statusCode: 403,
-        },
+          statusCode: 403
+        }
       });
     }
     const user = await User.findOne({ _id: req.params.id });
@@ -1028,13 +1038,13 @@ exports.getSingleStoreAdmin = async (req, res) => {
         message: "No store admin with that Id",
         success: false,
         error: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     const { id } = req.params;
     const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-    const s_t = (month) => {
+    const s_t = month => {
       const t = new Date();
       t.setHours(0, 0, 0, 0);
       t.setMonth(month, 1);
@@ -1044,27 +1054,23 @@ exports.getSingleStoreAdmin = async (req, res) => {
       return {
         createdAt: {
           $gte: t,
-          $lt: s,
-        },
+          $lt: s
+        }
       };
     };
     const stores = await Store.find({ store_admin_ref: id });
-    const trans = (
-      await transactionService.getTransactions({
-        store_admin_ref: id,
-      })
-    ).map((elem) => ({ storeName: elem.store_name, transaction: { ...elem } }));
-    const debts = (
-      await transactionService.getTransactions({
-        store_admin_ref: id,
-        type: "debt",
-      })
-    ).map((elem) => ({ storeName: elem.store_name, debt: { ...elem } }));
+    const trans = (await transactionService.getTransactions({
+      store_admin_ref: id
+    })).map(elem => ({ storeName: elem.store_name, transaction: { ...elem } }));
+    const debts = (await transactionService.getTransactions({
+      store_admin_ref: id,
+      type: "debt"
+    })).map(elem => ({ storeName: elem.store_name, debt: { ...elem } }));
     const data = {
       user,
       storeCount: stores.length,
       assistantCount: await StoreAssistant.countDocuments({
-        store_admin_ref: id,
+        store_admin_ref: id
       }),
       customerCount: await stores.reduce(
         async (acc, cur) =>
@@ -1072,15 +1078,13 @@ exports.getSingleStoreAdmin = async (req, res) => {
           (await customersModel.countDocuments({ store_ref_id: cur._id })),
         0
       ),
-      newCustomers: (
-        await stores.reduce(
-          async (acc, cur) => [
-            ...(await acc),
-            ...(await customersModel.find({ store_ref_id: cur._id })),
-          ],
-          []
-        )
-      )
+      newCustomers: (await stores.reduce(
+        async (acc, cur) => [
+          ...(await acc),
+          ...(await customersModel.find({ store_ref_id: cur._id }))
+        ],
+        []
+      ))
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
         .slice(0, 15),
       transactions: trans,
@@ -1088,7 +1092,7 @@ exports.getSingleStoreAdmin = async (req, res) => {
         acc = await acc;
         const transactions = await transactionsModel.countDocuments({
           store_admin_ref: id,
-          ...s_t(month),
+          ...s_t(month)
         });
         return [...acc, transactions];
       }, []),
@@ -1157,12 +1161,12 @@ exports.getSingleStoreAdmin = async (req, res) => {
             return acc;
           return acc + parseFloat(cur.transaction.amount) || 0;
         }, 0)
-      ),
+      )
     };
     return res.status(200).json({
       success: true,
       message: "admin dashboard",
-      data,
+      data
     });
   } catch (error) {
     errorHandler(error, res);
