@@ -46,6 +46,9 @@ router.delete(
   users.deleteSingleStoreAssistant
 );
 
+//  Update self for assistant
+router.put("/assistant/update", auth, users.updateSelfAssistant);
+
 // Update User Info with user_id
 router.put("/store-admin/update", auth, users.updateStoreAdmin);
 
