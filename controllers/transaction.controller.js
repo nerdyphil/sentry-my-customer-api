@@ -174,7 +174,10 @@ exports.findAllStore = async (req, res) => {
       transactions = await transactionService.getTransactions({});
     } else {
       transactions = await transactionService.getTransactions({
-        $or: [{ _id: req.user.store_id }, { store_admin_ref: req.user._id }],
+        $or: [
+          { store_ref_id: req.user.store_id },
+          { store_admin_ref: req.user._id },
+        ],
       });
     }
     return res.status(200).json({

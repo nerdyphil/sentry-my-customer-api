@@ -1,11 +1,15 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const ComplaintFeedback = require("./complaint_feedbacks");
 
 const ComplaintSchema = new mongoose.Schema({
   storeOwner: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'store_admin',
+    ref: "store_admin",
+  },
+  store_id: {
+    type: Schema.Types.ObjectId,
+    ref: "mycustomer_store",
   },
   storeOwnerPhone: {
     type: String,
@@ -28,19 +32,18 @@ const ComplaintSchema = new mongoose.Schema({
   message: {
     type: String,
     required: true,
-    // Message the complainer sends 
+    // Message the complainer sends
   },
   status: {
     type: String,
     enum: ["New", "Pending", "Resolved", "Closed"],
-    default: "New"
+    default: "New",
   },
   feedbacks: [ComplaintFeedback.schema],
   date: {
     type: Date,
-    default: Date.now 
-  }
+    default: Date.now,
+  },
 });
 
-
-module.exports = mongoose.model('complaint_form', ComplaintSchema);
+module.exports = mongoose.model("complaint_form", ComplaintSchema);
