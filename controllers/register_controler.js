@@ -3,15 +3,16 @@ const bCrypt = require("bcryptjs");
 const { body } = require("express-validator/check");
 
 const UserModel = require("../models/store_admin");
+const AssistantModel = require("../models/storeAssistant");
 const CustomerModel = require("../models/customer");
 const { signToken, errorHandler } = require("./login_controler");
 
-exports.validate = (method) => {
+exports.validate = method => {
   switch (method) {
     case "body": {
       return [
         body("phone_number").isInt(),
-        body("password").isLength({ min: 6 }),
+        body("password").isLength({ min: 6 })
       ];
     }
   }
@@ -22,12 +23,13 @@ module.exports.registerUser = async (req, res) => {
   let {
     password,
     phone_number: identifier,
-    user_role = "store_admin",
+    user_role = "store_admin"
   } = req.body;
 
   try {
     //  Duplicate check
     let user = await UserModel.findOne({ identifier });
+    let assistant = await AssistantModel.findOne({ phone_number: identifier });
     if (user) {
       return res.status(409).json({
         success: false,
@@ -35,19 +37,29 @@ module.exports.registerUser = async (req, res) => {
         error: {
           statusCode: 409,
           description:
-            "Phone number already taken, please use another phone number",
-        },
+            "Phone number already taken, please use another phone number"
+        }
+      });
+    } else if (assistant) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+        error: {
+          statusCode: 409,
+          description:
+            "An Assistant already has this number, Please use another number"
+        }
       });
     }
     password = await bCrypt.hash(password, 10);
     user = await UserModel.create({
       identifier,
-      local: { phone_number: identifier, password, user_role },
+      local: { phone_number: identifier, password, user_role }
     });
     const api_token = signToken({
       phone_number: identifier,
       user_role,
-      _id: user._id,
+      _id: user._id
     });
     user.api_token = api_token;
     user = await user.save();
@@ -56,8 +68,8 @@ module.exports.registerUser = async (req, res) => {
       message: "User registration successfull",
       data: {
         statusCode: 201,
-        user,
-      },
+        user
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -75,8 +87,8 @@ module.exports.registerCustomer = async (req, res) => {
         message: "Phone number already taken. Please use another phone number.",
         success: false,
         error: {
-          statusCode: 409,
-        },
+          statusCode: 409
+        }
       });
     }
     customer = await CustomerModel.create({ phone_number, name, email });
@@ -87,8 +99,8 @@ module.exports.registerCustomer = async (req, res) => {
         _id: customer._id,
         name,
         phone_number,
-        store_ref_id: customer.store_ref_id,
-      },
+        store_ref_id: customer.store_ref_id
+      }
     });
   } catch (error) {
     errorHandler(error, res);
