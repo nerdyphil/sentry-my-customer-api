@@ -570,13 +570,25 @@ exports.getFeedbacks = async (req, res) => {
 
     let feedbacks = complaints.feedbacks;
 
+    let responseFeedbacks = []
+
+    for(let index = 0;  index < feedbacks.length; index++) {
+      const user = await StoreOwner.findById(feedbacks[index].user)
+      if(user) {
+        let local = JSON.parse(JSON.stringify(feedbacks[index]))
+        responseFeedbacks.push({...local, userName: user.local.first_name})
+      } else {
+        responseFeedbacks.push(feedbacks[index])
+      }
+    }
+
     // Send response
     res.status(200).json({
       success: true,
       message: "All Feedbacks for this Complaint!",
       data: {
         statusCode: 200,
-        feedbacks,
+        feedbacks: responseFeedbacks,
       },
     });
   } catch (err) {
