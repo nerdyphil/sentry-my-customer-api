@@ -56,6 +56,7 @@ async function sendToken(user, res){
    const dayToday = dateToday.getDate();
    user.resetPasswordToken = makeid(codeLength, false);
    user.resetPasswordExpires = dayToday;
+   user.save();
 
    //get recipient phone
    let recipient;
@@ -73,12 +74,12 @@ sms
       success: true,
       message: "successful",
       data: {
+        statusCode: 200,
         message: "Reset token sent successfully",
       },
     });
   })
   .catch((error) => {
-    console.log(error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong.",
@@ -92,14 +93,14 @@ sms
 
 
 module.exports.resetPassword = async (req, res, next) => {
-  const today = new Date();
+  const today = new Date().getDate();
   const store_admin = await User.findOne({
     resetPasswordToken: req.body.token,
-    resetPasswordExpires: today,
+    resetPasswordExpires: new Date (today),
   });
   const store_assistant = await Assistant.findOne({
     resetPasswordToken: req.body.token,
-    resetPasswordExpires: today,
+    resetPasswordExpires: new Date (today),
   });
   try {
     const todayDate = new Date();
@@ -109,13 +110,11 @@ module.exports.resetPassword = async (req, res, next) => {
 
     if(store_admin) {
       resetuser = store_admin;
-      console.log("ADMIN", resetuser)
-      passwordField = resetuser.local.password;
+      passwordField = "resetuser.local.password";
     }
     else if(store_assistant) { 
-      console.log("ASS", resetuser)
       resetuser = store_assistant;
-      passwordField = resetuser.password;
+      passwordField = "resetuser.password";
     }
     if (!resetuser) {
       invalidToken(res);
@@ -126,7 +125,6 @@ module.exports.resetPassword = async (req, res, next) => {
     let oldPassword;
     if(store_admin) oldPassword = resetuser.local.password;
     else {
-      console.log(resetuser);
       oldPassword = resetuser.password;
     }
 
@@ -154,11 +152,13 @@ module.exports.resetPassword = async (req, res, next) => {
       });
     } else {
       //Set the new password
-      passwordField = await bCrypt.hash(req.body.password, 10);
+      if(store_admin) resetuser.local.password = await bCrypt.hash(req.body.password, 10);
+      else if (store_assistant) resetuser.password = await bCrypt.hash(req.body.password, 10);
       resetuser.resetPasswordToken = undefined;
       resetuser.resetPasswordExpires = undefined;
       try {
         await resetuser.save();
+        passwordChanged(resetuser, res);
       } catch (err) {
         res.status(500).json({
           success: false,
@@ -171,7 +171,6 @@ module.exports.resetPassword = async (req, res, next) => {
       }
     }
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       success: false,
       message: "Something went wrong.",
@@ -193,24 +192,25 @@ async function invalidToken(res){
     });
 }
 
-async function passwordChanged(res){
+async function passwordChanged(resetuser, res){
   let recipient;
-  if(resetuser.local) recipient = recipient.local.phone_number;
+  if (resetuser.local) recipient = resetuser.local.phone_number;
   else recipient = resetuser.phone_number;
 
   //send sms
   const sms = africastalking.SMS;
   sms
     .send({
-      to: [`+${resetuser.local.phone_number}`],
-      message: `Your password has been successfully changed.`,
+      to: [`+${recipient}`],
+      message: `Your MyCustomer account password reset was successful`,
     })
     .then((response) => {
       res.status(200).json({
         success: true,
-        message: "successful",
+        message: "Password reset successful",
         data: {
-          message: "successful",
+          statusCode: 200,
+          message: "Password reset successful",
         },
       });
     });
