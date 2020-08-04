@@ -504,7 +504,7 @@ exports.updateStoreAdmin = async (req, res) => {
   }
 };
 
-exports.updatePassword = (req, res) => {
+exports.updatePassword =async (req, res) => {
   const errorResponse = err => {
     return res.status(500).json({
       success: false,
@@ -519,10 +519,10 @@ exports.updatePassword = (req, res) => {
     const { old_password, new_password, confirm_password } = req.body;
     const identifier = req.user.phone_number;
     let user;
-    const store_admin = User.findOne({ identifier });
-    const store_assistant = storeAssistant.findOne({ phone_number: identifier });
-    if(store_admin) user = store_admin;
-    else user = store_assistant;
+    const store_admin = await User.findOne({ identifier });
+    const store_assistant = await storeAssistant.findOne({ phone_number: identifier });
+    if(store_admin) user = await store_admin;
+    else if(store_assistant) user = await store_assistant;
 
     if (confirm_password !== new_password){
       return res.status(400).json({
@@ -537,13 +537,10 @@ exports.updatePassword = (req, res) => {
     changePassword(user, res);
 
   async function changePassword(user, res){
-    //identifier whether user is admin or assistant
-    async function whichUser(user){
-      if(user.local) return user.local.password;
-      else return user.password
-    }
-    bcrypt.compare(old_password, whichUser(user), function (err,result) {
+    const password = user.password || user.local.password
+    bcrypt.compare(old_password, password, function (err,result) {
       if (err) {
+        console.log(err)
         return errorResponse(err);
       }
       if (!result)
