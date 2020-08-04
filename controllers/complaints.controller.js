@@ -11,16 +11,35 @@ exports.findAll = async (req, res) => {
   // Finds all complaints pertaining to store owner
   try {
     // const complaints = await Complaint.find({ storeOwner: req.params.ownerId });
-    const complaints = await Complaint.find({
-      storeOwnerPhone: req.user.phone_number,
-    });
-
-    res.status(200).send({
-      success: true,
-      message: "All complaints",
-      data: {
-        statusCode: 200,
-        complaints,
+    let complaints;
+    let countData;
+    if (req.user.user_role === "store_assistant") {
+      complaints = await Complaint.find({
+        store_id: req.user.store_id,
+      });
+      countData = {
+        new: await Complaint.countDocuments({
+          store_id: req.user.store_id,
+          status: "New",
+        }),
+        pending: await Complaint.countDocuments({
+          store_id: req.user.store_id,
+          status: "Pending",
+        }),
+        resolved: await Complaint.countDocuments({
+          store_id: req.user.store_id,
+          status: "Resolved",
+        }),
+        closed: await Complaint.countDocuments({
+          store_id: req.user.store_id,
+          status: "Closed",
+        }),
+      };
+    } else {
+      complaints = await Complaint.find({
+        storeOwnerPhone: req.user.phone_number,
+      });
+      countData = {
         new: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
           status: "New",
@@ -37,6 +56,16 @@ exports.findAll = async (req, res) => {
           storeOwnerPhone: req.user.phone_number,
           status: "Closed",
         }),
+      };
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "All complaints",
+      data: {
+        statusCode: 200,
+        complaints,
+        ...countData,
       },
     });
   } catch (error) {
@@ -242,7 +271,7 @@ exports.newComplaint = async (req, res) => {
   try {
     // Get Store Owner Id from the URL Parameter
     let storeOwner = await StoreOwner.findOne({
-      identifier: req.user.phone_number,
+      _id: req.user.store_admin_ref,
     });
 
     // console.log(storeOwner.local);
@@ -252,6 +281,7 @@ exports.newComplaint = async (req, res) => {
 
     // If Id exists, create complaint
     let newComplaint = await Complaint({
+      store_id: req.user.store_id,
       name:
         storeOwner.local.first_name.toString() +
         " " +
