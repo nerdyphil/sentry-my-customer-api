@@ -3,6 +3,7 @@ const Complaint = require("../models/complaint_form");
 
 const StoreOwner = require("../models/store_admin");
 const { check, validationResult } = require("express-validator/check");
+const { errorHandler } = require("./login_controler");
 
 // @route       GET /complaints
 // @desc        Store admin retrieves all Complaints
@@ -16,7 +17,7 @@ exports.findAll = async (req, res) => {
     if (req.user.user_role === "store_assistant") {
       complaints = await Complaint.find({
         store_id: req.user.store_id,
-      }).sort({date: -1});
+      }).sort({ date: -1 });
       countData = {
         new: await Complaint.countDocuments({
           store_id: req.user.store_id,
@@ -38,7 +39,7 @@ exports.findAll = async (req, res) => {
     } else {
       complaints = await Complaint.find({
         storeOwnerPhone: req.user.phone_number,
-      }).sort({date: -1});
+      }).sort({ date: -1 });
       countData = {
         new: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
@@ -194,6 +195,95 @@ exports.update = async (req, res) => {
   }
 };
 
+// @route PUT /store-admin/update-complaints/:complaintId
+//@desc Allows Store owner edit the contents of complains from his store
+//@access Private
+exports.updateComplaint = async (req, res) => {
+  try {
+    const user = await StoreOwner.findOne({ _id: req.user._id });
+    const { subject, message } = req.body;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+        error: {
+          statusCode: 401,
+        },
+      });
+    }
+
+    let complaint = await Complaint.findOne({
+      _id: req.params.complaintId,
+      storeOwner: user._id,
+    });
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Could not find complaint",
+        error: {
+          statusCode: 404,
+        },
+      });
+    }
+
+    complaint.subject = subject || complaint.subject;
+    complaint.message = message || complaint.message;
+    complaint = await complaint.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "complaint updated",
+      data: complaint,
+    });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
+exports.deleteComplaint = async (req, res) => {
+  try {
+    const user = await StoreOwner.findOne({ _id: req.user._id });
+    const { subject, message } = req.body;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+        error: {
+          statusCode: 401,
+        },
+      });
+    }
+
+    let complaint = await Complaint.findOne({
+      _id: req.params.complaintId,
+      storeOwner: user._id,
+    });
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Could not find complaint",
+        error: {
+          statusCode: 404,
+        },
+      });
+    }
+
+    complaint = await complaint.remove();
+
+    return res.status(200).json({
+      success: true,
+      message: "complaint deleted",
+      data: complaint,
+    });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
 // @route       DELETE /complaint/delete/:complaintId
 // @desc        Super Admin deletes complaint
 // @access      Private
@@ -344,7 +434,7 @@ exports.getAllComplaintsInDB = async (req, res) => {
     }
 
     // All complaints
-    const complaints = await Complaint.find({}).sort({date: -1});
+    const complaints = await Complaint.find({}).sort({ date: -1 });
 
     // If complaint don't exist
     if (!complaints)

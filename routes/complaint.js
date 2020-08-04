@@ -2,8 +2,7 @@ const express = require("express");
 const router = express.Router();
 const complaintsController = require("../controllers/complaints.controller");
 const auth = require("../auth/auth");
-const { check, validationResult } = require('express-validator/check');
-
+const { check, validationResult } = require("express-validator/check");
 
 // @route       GET /complaints
 // @desc        User gets all complaints
@@ -24,46 +23,81 @@ router.get("/complaint/:complaintId", auth, complaintsController.findOne);
 // @desc        Super Admin updates status of complaint
 // @access      Private
 router.put("/complaint/update/:complaintId", auth, complaintsController.update);
+router.put(
+  "/store-admin/update-complaints/:complaintId",
+  auth,
+  complaintsController.updateComplaint
+);
 
+router.delete(
+  "/store-admin/delete-complaints/:complaintId",
+  auth,
+  complaintsController.deleteComplaint
+);
 
 // @route       POST /complaint/new
 // @desc        User (store owner) creates complaints for super admin to view
 // @access      Private
 router.post(
-    "/complaint/new", 
+  "/complaint/new",
+  [
+    auth,
     [
-        auth,
-        [
-            // check('name', 'Please add a name').not().isEmpty(),
-            // check('email', 'Please add a valid email').isEmail(),
-            check('subject', 'Please put in a subject').not().isEmpty(),
-            check('message', 'Please add a message of more that 10 characters').isLength({ min: 10 })
-        ]
+      // check('name', 'Please add a name').not().isEmpty(),
+      // check('email', 'Please add a valid email').isEmail(),
+      check("subject", "Please put in a subject").not().isEmpty(),
+      check(
+        "message",
+        "Please add a message of more that 10 characters"
+      ).isLength({ min: 10 }),
     ],
-    complaintsController.newComplaint
+  ],
+  complaintsController.newComplaint
 );
 
 // @route       DELETE /complaint/delete/:complaintId
 // @desc        User (store owner) creates complaints for super admin to view
 // @access      Private
-router.delete("/complaint/delete/:complaintId", auth, complaintsController.deleteOne);
+router.delete(
+  "/complaint/delete/:complaintId",
+  auth,
+  complaintsController.deleteOne
+);
 
 /**
- * 
+ *
  *  Feedbacks
- * 
+ *
  */
 
-router.post("/complaint/feedback/:complaintId", auth, complaintsController.createFeedbacks);
+router.post(
+  "/complaint/feedback/:complaintId",
+  auth,
+  complaintsController.createFeedbacks
+);
 
-router.get("/complaint/feedbacks/:complaintId", auth, complaintsController.getFeedbacks);
+router.get(
+  "/complaint/feedbacks/:complaintId",
+  auth,
+  complaintsController.getFeedbacks
+);
 
+router.get(
+  "/complaint/feedback/:complaintId/:feedbackId",
+  auth,
+  complaintsController.getFeedback
+);
 
-router.get("/complaint/feedback/:complaintId/:feedbackId", auth, complaintsController.getFeedback);
+router.delete(
+  "/complaint/feedback/:complaintId/:feedbackId",
+  auth,
+  complaintsController.deleteFeedback
+);
 
-router.delete("/complaint/feedback/:complaintId/:feedbackId", auth, complaintsController.deleteFeedback);
-
-
-router.delete("/complaint/feedbacks/:complaintId/", auth, complaintsController.deleteAllFeedbacks);
+router.delete(
+  "/complaint/feedbacks/:complaintId/",
+  auth,
+  complaintsController.deleteAllFeedbacks
+);
 
 module.exports = router;
