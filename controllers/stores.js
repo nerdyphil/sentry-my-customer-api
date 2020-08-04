@@ -3,9 +3,23 @@ const UserModel = require("../models/store_admin");
 const CustomerModel = require("../models/customer");
 const Assistants = require("../models/storeAssistant");
 const TransactionModel = require("../models/transaction");
+const { body } = require("express-validator/check");
 
 const { errorHandler } = require("./login_controler");
 const { storeService } = require("../services");
+
+exports.validate = (method) => {
+  switch (method) {
+    case "body": {
+      return [
+        body("store_name").isString(),
+        body("shop_address").isString(),
+        body("tagline").isString(),
+        body("phone_number").optional().isNumeric()
+      ];
+    }
+  }
+};
 
 exports.createStore = async (req, res) => {
   if (req.body.store_name === "" || req.body.shop_address === "") {
