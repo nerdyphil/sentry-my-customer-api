@@ -29,7 +29,7 @@ module.exports.registerUser = async (req, res) => {
   try {
     //  Duplicate check
     let user = await UserModel.findOne({ identifier });
-    let assistant = await AssistantModel.findOnde({ phone_number: identifier });
+    let assistant = await AssistantModel.findOne({ phone_number: identifier });
     if (user) {
       return res.status(409).json({
         success: false,
