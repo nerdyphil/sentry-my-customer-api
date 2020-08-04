@@ -12,7 +12,7 @@ exports.validate = (method) => {
     case "body": {
       return [
         body("name").isLength({ min: 3 }),
-        body("phone_number").optional().isNumeric()
+        body("phone_number").optional().isNumeric().withMessage('please enter a valid number')
       ];
     }
   }

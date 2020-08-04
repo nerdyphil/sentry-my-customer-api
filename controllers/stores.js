@@ -15,7 +15,7 @@ exports.validate = (method) => {
         body("store_name").isString(),
         body("shop_address").isString(),
         body("tagline").isString(),
-        body("phone_number").optional().isNumeric()
+        body("phone_number").optional().isNumeric().withMessage('please enter a valid number')
       ];
     }
   }

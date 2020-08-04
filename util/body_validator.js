@@ -6,7 +6,13 @@ module.exports = (req, res, next) => {
       return next();
     }
     const extractedErrors = [];
-    errors.array().map(err => extractedErrors.push({ message: `${err.param} ${err.msg}` }));
+    errors.array().map(err => {
+        if(err.param === 'phone_number') {
+            extractedErrors.push({ message: `${err.msg}` })
+        } else {
+            extractedErrors.push({ message: `${err.param} ${err.msg}` })
+        }
+    });
 
     const response = {
         success: false,
