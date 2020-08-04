@@ -10,7 +10,10 @@ const { customerService, storeService } = require("../services");
 exports.validate = (method) => {
   switch (method) {
     case "body": {
-      return [body("name").isLength({ min: 3 })];
+      return [
+        body("name").isLength({ min: 3 }),
+        body("phone_number").optional().isNumeric()
+      ];
     }
   }
 };
