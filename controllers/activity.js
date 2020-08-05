@@ -1,4 +1,5 @@
 const UserModel = require("../models/store_admin");
+const storeAssistantModel = require("../models/storeAssistant");
 const Activity = require("../models/activity");
 const { body } = require("express-validator/check");
 const Customer = require("../models/customer");
@@ -8,28 +9,6 @@ const { customerService, storeService } = require("../services");
 exports.retrieve = async (req, res) => {
   try {
     const identifier = req.user.phone_number;
-    const user = await UserModel.findOne({
-      $or: [
-        {
-          identifier: req.user.phone_number,
-          "local.user_role": req.user.user_role
-        },
-        {
-          "assistants.phone_number": req.user.phone_number,
-          "assistants.user_role": req.user.user_role
-        }
-      ]
-    });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-        data: {
-          statusCode: 404,
-          message: "User not found"
-        }
-      });
-    }
     let activity;
     if (req.user.user_role == "store_assistant") {
       activity = await Activity.find({
