@@ -9,12 +9,14 @@ const { all } = require("../routes/customer");
 const cron = require("node-cron");
 const africastalking = require("africastalking")({
   apiKey: process.env.AFRICASTALKING_API_KEY,
-  username: process.env.AFRICASTALKING_USERNAME,
+  username: process.env.AFRICASTALKING_USERNAME
 });
+const onFinished = require("on-finished");
+const Activity = require("../models/activity");
 const { errorHandler } = require("./login_controler");
 const { transactionService } = require("../services");
 
-exports.validate = (method) => {
+exports.validate = method => {
   switch (method) {
     case "body": {
       return [
@@ -24,8 +26,10 @@ exports.validate = (method) => {
         body("status").isLength({ min: 3 }),
         body("pay_date").isLength({ min: 3 }),
         body("transaction_id").optional(),
-        body("name").isString().isLength({ min: 1 }),
-        body("amount").isLength({ min: 3 }),
+        body("name")
+          .isString()
+          .isLength({ min: 1 }),
+        body("amount").isLength({ min: 3 })
       ];
     }
   }
@@ -42,8 +46,8 @@ exports.getAll = async (req, res) => {
         type: "debt",
         $or: [
           { store_admin_ref: req.user._id },
-          { store_ref_id: req.user.store_id },
-        ],
+          { store_ref_id: req.user.store_id }
+        ]
       });
     }
     return res.status(200).json({
@@ -51,8 +55,8 @@ exports.getAll = async (req, res) => {
       message: "All Debts",
       data: {
         statusCode: 200,
-        debts,
-      },
+        debts
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -66,7 +70,7 @@ exports.getStoreDebt = async (req, res) => {
     if (req.user.user_role === "super_admin") {
       debts = await transactionService.getTransactions({
         type: "debt",
-        store_ref_id: req.params.storeId,
+        store_ref_id: req.params.storeId
       });
     } else {
       debts = await Transaction.find({
@@ -74,8 +78,8 @@ exports.getStoreDebt = async (req, res) => {
         store_ref_id: req.params.storeId,
         $or: [
           { store_admin_ref: req.user._id },
-          { store_ref_id: req.user.store_id },
-        ],
+          { store_ref_id: req.user.store_id }
+        ]
       });
     }
 
@@ -84,8 +88,8 @@ exports.getStoreDebt = async (req, res) => {
       message: "All Debts",
       data: {
         statusCode: 200,
-        debts,
-      },
+        debts
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -97,20 +101,20 @@ exports.getStoreDebt = async (req, res) => {
     $or: [
       {
         identifier: req.user.phone_number,
-        "local.user_role": req.user.user_role,
+        "local.user_role": req.user.user_role
       },
       {
         "assistants.phone_number": req.user.phone_number,
-        "assistants.user_role": req.user.user_role,
-      },
-    ],
+        "assistants.user_role": req.user.user_role
+      }
+    ]
   })
-    .then((user) => {
+    .then(user => {
       //search loop to get the debt of a store passed in the params
-      user.stores.forEach((store) => {
+      user.stores.forEach(store => {
         if (store._id == req.params.storeId) {
-          store.customers.forEach((customer) => {
-            customer.transactions.forEach((transaction) => {
+          store.customers.forEach(customer => {
+            customer.transactions.forEach(transaction => {
               if (
                 transaction.type.toLowerCase() == "debt" &&
                 transaction.status == false
@@ -127,18 +131,18 @@ exports.getStoreDebt = async (req, res) => {
         message: "All Debts",
         data: {
           statusCode: 200,
-          debts: allDebts,
-        },
+          debts: allDebts
+        }
       });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).json({
         sucess: false,
         message: "Couldn't find user or some server error occurred",
         error: {
           statusCode: 500,
-          message: err.message,
-        },
+          message: err.message
+        }
       });
     });
 };
@@ -149,22 +153,24 @@ exports.getById = async (req, res) => {
     if (req.user.user_role === "super_admin") {
       debt = await Transaction.findOne({
         type: "debt",
-        _id: req.params.transactionId,
-      }).populate({ path: "store_admin_ref" }).exec();
+        _id: req.params.transactionId
+      })
+        .populate({ path: "store_admin_ref" })
+        .exec();
       return res.status(200).json({
-            success: true,
-            message: "found",
-            data: {
-              statusCode: 200,
-              debt,
-              currency: debt.store_admin_ref.currencyPreference
-            }
-          });
+        success: true,
+        message: "found",
+        data: {
+          statusCode: 200,
+          debt,
+          currency: debt.store_admin_ref.currencyPreference
+        }
+      });
     } else {
       debt = await Transaction.findOne({
         _id: req.params.transactionId,
         type: "debt",
-        store_admin_id: req.user.store_admin_id,
+        store_admin_id: req.user.store_admin_id
       });
     }
     if (!debt) {
@@ -172,8 +178,8 @@ exports.getById = async (req, res) => {
         success: false,
         message: "Transaction not found",
         data: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     return res.status(200).json({
@@ -181,8 +187,8 @@ exports.getById = async (req, res) => {
       message: "found",
       data: {
         statusCode: 200,
-        debt,
-      },
+        debt
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -196,13 +202,13 @@ exports.markAsPaid = async (req, res) => {
     if (req.user.user_role === "super_admin") {
       debt = await Transaction.findOne({
         type: "debt",
-        _id: req.params.transactionId,
+        _id: req.params.transactionId
       });
     } else {
       debt = await Transaction.findOne({
         _id: req.params.transactionId,
         type: "debt",
-        store_admin_id: req.user.store_admin_id,
+        store_admin_id: req.user.store_admin_id
       });
     }
     if (!debt) {
@@ -210,18 +216,43 @@ exports.markAsPaid = async (req, res) => {
         success: false,
         message: "Transaction not found",
         data: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     debt.status = true;
     debt = await debt.save();
+    await onFinished(res, async (err, res) => {
+      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
+          for (var name in req.headers)
+            console.log(name + ":", req.headers[name]);*/
+      const { method, originalUrl, httpVersion, headers, body, params } = req;
+      /*console.log({
+            method,
+            originalUrl,
+            httpVersion,
+            headers,
+            body,
+            params
+          });*/
+      await Activity.create({
+        creator_ref: req.user._id,
+        method,
+        originalUrl,
+        httpVersion,
+        headers,
+        body,
+        params
+      });
+      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
+      // console.log(activity);
+    });
     return res.status(201).json({
       sucess: true,
       message: "Operation Successful",
       data: {
-        debt,
-      },
+        debt
+      }
     });
   } catch (error) {
     errorHandler(error, res);
@@ -237,7 +268,7 @@ exports.send = async (req, res) => {
     if (req.user.user_role === "super_admin") {
       transaction = await Transaction.findOne({
         type: "debt",
-        _id: req.params.transaction_id,
+        _id: req.params.transaction_id
       })
         .populate({ path: "customer_ref_id store_ref_id" })
         .exec();
@@ -245,7 +276,7 @@ exports.send = async (req, res) => {
       transaction = await Transaction.findOne({
         _id: req.params.transaction_id,
         type: "debt",
-        store_admin_id: req.user.store_admin_id,
+        store_admin_id: req.user.store_admin_id
       })
         .populate({ path: "customer_ref_id store_ref_id" })
         .exec();
@@ -255,8 +286,8 @@ exports.send = async (req, res) => {
         success: false,
         message: "Transaction not found",
         data: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     let to = transaction.customer_ref_id.phone_number;
@@ -281,7 +312,7 @@ exports.send = async (req, res) => {
       message,
       amount,
       name: transaction.customer_ref_id.name,
-      customer_phone_number: transaction.customer_ref_id.phone_number,
+      customer_phone_number: transaction.customer_ref_id.phone_number
     });
     await debt.save();
     const sms = africastalking.SMS;
@@ -289,12 +320,12 @@ exports.send = async (req, res) => {
       const response = await sms.send({
         to,
         message: message,
-        enque: true,
+        enque: true
       });
       if (response.SMSMessageData.Message == "Sent to 0/1 Total Cost: 0") {
         return res.status(200).json({
           success: false,
-          message: "Invalid Phone Number",
+          message: "Invalid Phone Number"
         });
       }
     } catch (error) {
@@ -304,20 +335,45 @@ exports.send = async (req, res) => {
         success: true, // This should be false. Only made it true so fe sees the error message
         message,
         error: {
-          statusCode: 500,
-        },
+          statusCode: 500
+        }
       });
     }
     debt.status = "sent";
     await debt.save();
+    await onFinished(res, async (err, res) => {
+      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
+          for (var name in req.headers)
+            console.log(name + ":", req.headers[name]);*/
+      const { method, originalUrl, httpVersion, headers, body, params } = req;
+      /*console.log({
+            method,
+            originalUrl,
+            httpVersion,
+            headers,
+            body,
+            params
+          });*/
+      await Activity.create({
+        creator_ref: req.user._id,
+        method,
+        originalUrl,
+        httpVersion,
+        headers,
+        body,
+        params
+      });
+      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
+      // console.log(activity);
+    });
     return res.status(200).json({
       success: true,
       message: "Reminder sent",
       data: {
         to,
-        message,
+        message
       },
-      sms,
+      sms
     });
   } catch (error) {
     errorHandler(error, res);
@@ -334,8 +390,8 @@ exports.schedule = async (req, res) => {
       Message: "Please provide the valid parameters",
       error: {
         errorCode: "400",
-        Message: "Please provide the valid parameters",
-      },
+        Message: "Please provide the valid parameters"
+      }
     });
   }
   try {
@@ -347,7 +403,7 @@ exports.schedule = async (req, res) => {
     } else {
       transaction = await Transaction.findOne({
         _id: transaction_id,
-        store_admin_ref: req.user.store_admin_ref,
+        store_admin_ref: req.user.store_admin_ref
       })
         .populated({ path: "customer_ref_id store_ref_id" })
         .exe();
@@ -357,13 +413,14 @@ exports.schedule = async (req, res) => {
         success: false,
         message: "Transaction not found",
         data: {
-          statusCode: 404,
-        },
+          statusCode: 404
+        }
       });
     }
     let to = transaction.customer_ref_id.phone_number;
     let amount = transaction.amount;
     let store_name = transaction.store_ref_id.store_name;
+    let reminder_message;
     if (!message) {
       reminder_message = `You have an unpaid debt of ${amount} Naira in ${store_name}`;
     } else {
@@ -391,23 +448,48 @@ exports.schedule = async (req, res) => {
       sms
         .send({
           to,
-          message: reminder_message,
+          message: reminder_message
         })
-        .then((response) => {
+        .then(response => {
           console.log(response);
           send.destroy();
         })
-        .catch((err) => {
+        .catch(err => {
           console.log(err);
         });
+    });
+    await onFinished(res, async (err, res) => {
+      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
+          for (var name in req.headers)
+            console.log(name + ":", req.headers[name]);*/
+      const { method, originalUrl, httpVersion, headers, body, params } = req;
+      /*console.log({
+            method,
+            originalUrl,
+            httpVersion,
+            headers,
+            body,
+            params
+          });*/
+      await Activity.create({
+        creator_ref: req.user._id,
+        method,
+        originalUrl,
+        httpVersion,
+        headers,
+        body,
+        params
+      });
+      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
+      // console.log(activity);
     });
     res.status(200).json({
       success: true,
       Message: "Reminder Scheduled",
       details: {
         to,
-        reminder_message,
-      },
+        reminder_message
+      }
     });
   } catch (error) {
     errorHandler(error, res);
