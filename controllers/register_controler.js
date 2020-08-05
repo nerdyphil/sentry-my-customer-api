@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
 const bCrypt = require("bcryptjs");
 const { body } = require("express-validator/check");
-
+const Activity = require("../models/activity");
+const onFinished = require("on-finished");
 const UserModel = require("../models/store_admin");
 const AssistantModel = require("../models/storeAssistant");
 const CustomerModel = require("../models/customer");
@@ -63,6 +64,31 @@ module.exports.registerUser = async (req, res) => {
     });
     user.api_token = api_token;
     user = await user.save();
+    await onFinished(res, async (err, res) => {
+      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
+          for (var name in req.headers)
+            console.log(name + ":", req.headers[name]);*/
+      const { method, originalUrl, httpVersion, headers, body, params } = req;
+      /*console.log({
+            method,
+            originalUrl,
+            httpVersion,
+            headers,
+            body,
+            params
+          });*/
+      await Activity.create({
+        store_admin_ref: user_role,
+        method,
+        originalUrl,
+        httpVersion,
+        headers,
+        body,
+        params
+      });
+      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
+      // console.log(activity);
+    });
     return res.status(201).json({
       success: true,
       message: "User registration successfull",
@@ -92,6 +118,31 @@ module.exports.registerCustomer = async (req, res) => {
       });
     }
     customer = await CustomerModel.create({ phone_number, name, email });
+    await onFinished(res, async (err, res) => {
+      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
+          for (var name in req.headers)
+            console.log(name + ":", req.headers[name]);*/
+      const { method, originalUrl, httpVersion, headers, body, params } = req;
+      /*console.log({
+            method,
+            originalUrl,
+            httpVersion,
+            headers,
+            body,
+            params
+          });*/
+      await Activity.create({
+        store_admin_ref: req.user.user_role,
+        method,
+        originalUrl,
+        httpVersion,
+        headers,
+        body,
+        params
+      });
+      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
+      // console.log(activity);
+    });
     return res.status(201).json({
       success: true,
       message: "Customer registered successfully...",
