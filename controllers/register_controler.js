@@ -78,7 +78,7 @@ module.exports.registerUser = async (req, res) => {
             params
           });*/
       await Activity.create({
-        creator_ref: user_role,
+        creator_ref: req.user._id,
         method,
         originalUrl,
         httpVersion,
@@ -132,7 +132,7 @@ module.exports.registerCustomer = async (req, res) => {
             params
           });*/
       await Activity.create({
-        creator_ref: req.user.user_role,
+        creator_ref: req.user._id,
         method,
         originalUrl,
         httpVersion,
