@@ -200,7 +200,9 @@ exports.update = async (req, res) => {
 //@access Private
 exports.updateComplaint = async (req, res) => {
   try {
-    const user = await StoreOwner.findOne({ _id: req.user._id });
+    const user = await StoreOwner.findOne({
+      $or: [{ _id: req.user._id }, { _id: req.user.store_admin_ref }],
+    });
     const { subject, message } = req.body;
 
     if (!user) {
@@ -213,10 +215,19 @@ exports.updateComplaint = async (req, res) => {
       });
     }
 
-    let complaint = await Complaint.findOne({
-      _id: req.params.complaintId,
-      storeOwner: user._id,
-    });
+    let complaint;
+    if (req.user.user_role === "store_admin") {
+      complaint = await Complaint.findOne({
+        _id: req.params.complaintId,
+        storeOwner: user._id,
+      });
+    } else {
+      complaint = await Complaint.findOne({
+        _id: req.params.complaintId,
+        storeOwner: user._id,
+        store_id: req.user.store_id,
+      });
+    }
 
     if (!complaint) {
       return res.status(404).json({
@@ -244,8 +255,9 @@ exports.updateComplaint = async (req, res) => {
 
 exports.deleteComplaint = async (req, res) => {
   try {
-    const user = await StoreOwner.findOne({ _id: req.user._id });
-    const { subject, message } = req.body;
+    const user = await StoreOwner.findOne({
+      $or: [{ _id: req.user._id }, { _id: req.user.store_admin_ref }],
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -257,10 +269,19 @@ exports.deleteComplaint = async (req, res) => {
       });
     }
 
-    let complaint = await Complaint.findOne({
-      _id: req.params.complaintId,
-      storeOwner: user._id,
-    });
+    let complaint;
+    if (req.user.user_role === "store_admin") {
+      complaint = await Complaint.findOne({
+        _id: req.params.complaintId,
+        storeOwner: user._id,
+      });
+    } else {
+      complaint = await Complaint.findOne({
+        _id: req.params.complaintId,
+        storeOwner: user._id,
+        store_id: req.user.store_id,
+      });
+    }
 
     if (!complaint) {
       return res.status(404).json({
