@@ -1,7 +1,9 @@
 const nodemailer = require("nodemailer"),
   userModel = require("../models/store_admin"),
   CustomerModel = require("../models/customer"),
-  StoreModel = require("../models/store");
+  StoreModel = require("../models/store"),
+  onFinished = require("on-finished"),
+  Activity = require("../models/activity");
 
 module.exports = {
   sendMail: () => async (req, res) => {
@@ -96,7 +98,7 @@ module.exports = {
         subject: req.body.subject,
         html: req.body.html
       };
-      return transporter.sendMail(mailOptions, (err, data) => {
+      return transporter.sendMail(mailOptions, async (err, data) => {
         if (err) {
           return res.status(err.status || 500).json({
             success: false,
@@ -107,6 +109,38 @@ module.exports = {
             }
           });
         } else {
+          await onFinished(res, async (err, res) => {
+            /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
+          for (var name in req.headers)
+            console.log(name + ":", req.headers[name]);*/
+            const {
+              method,
+              originalUrl,
+              httpVersion,
+              headers,
+              body,
+              params
+            } = req;
+            /*console.log({
+            method,
+            originalUrl,
+            httpVersion,
+            headers,
+            body,
+            params
+          });*/
+            await Activity.create({
+              creator_ref: req.user._id,
+              method,
+              originalUrl,
+              httpVersion,
+              headers,
+              body,
+              params
+            });
+            // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
+            // console.log(activity);
+          });
           return res.status(200).json({
             success: true,
             message: "Email sent successfully",
