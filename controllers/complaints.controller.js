@@ -4,8 +4,6 @@ const Complaint = require("../models/complaint_form");
 const StoreOwner = require("../models/store_admin");
 const { check, validationResult } = require("express-validator/check");
 const { errorHandler } = require("./login_controler");
-const onFinished = require("on-finished");
-const Activity = require("../models/activity");
 
 // @route       GET /complaints
 // @desc        Store admin retrieves all Complaints
@@ -18,47 +16,47 @@ exports.findAll = async (req, res) => {
     let countData;
     if (req.user.user_role === "store_assistant") {
       complaints = await Complaint.find({
-        store_id: req.user.store_id
+        store_id: req.user.store_id,
       }).sort({ date: -1 });
       countData = {
         new: await Complaint.countDocuments({
           store_id: req.user.store_id,
-          status: "New"
+          status: "New",
         }),
         pending: await Complaint.countDocuments({
           store_id: req.user.store_id,
-          status: "Pending"
+          status: "Pending",
         }),
         resolved: await Complaint.countDocuments({
           store_id: req.user.store_id,
-          status: "Resolved"
+          status: "Resolved",
         }),
         closed: await Complaint.countDocuments({
           store_id: req.user.store_id,
-          status: "Closed"
-        })
+          status: "Closed",
+        }),
       };
     } else {
       complaints = await Complaint.find({
-        storeOwnerPhone: req.user.phone_number
+        storeOwnerPhone: req.user.phone_number,
       }).sort({ date: -1 });
       countData = {
         new: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
-          status: "New"
+          status: "New",
         }),
         pending: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
-          status: "Pending"
+          status: "Pending",
         }),
         resolved: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
-          status: "Resolved"
+          status: "Resolved",
         }),
         closed: await Complaint.countDocuments({
           storeOwnerPhone: req.user.phone_number,
-          status: "Closed"
-        })
+          status: "Closed",
+        }),
       };
     }
 
@@ -68,8 +66,8 @@ exports.findAll = async (req, res) => {
       data: {
         statusCode: 200,
         complaints,
-        ...countData
-      }
+        ...countData,
+      },
     });
   } catch (error) {
     res.status(500).send({
@@ -77,8 +75,8 @@ exports.findAll = async (req, res) => {
       message: "Error fetching complaints",
       data: {
         statusCode: 422,
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 };
@@ -100,8 +98,8 @@ exports.findOne = async (req, res) => {
         message: "Error fetching complaint",
         data: {
           statusCode: 422,
-          error: error.message
-        }
+          error: error.message,
+        },
       });
     }
 
@@ -110,8 +108,8 @@ exports.findOne = async (req, res) => {
       message: "Complaint fetched",
       data: {
         statusCode: 200,
-        complaint
-      }
+        complaint,
+      },
     });
   } catch (error) {
     res.status(422).send({
@@ -119,8 +117,8 @@ exports.findOne = async (req, res) => {
       message: "Error fetching complaint",
       data: {
         statusCode: 422,
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 };
@@ -143,7 +141,7 @@ exports.update = async (req, res) => {
 
     // Super admin user role
     const adminUser = await StoreOwner.find({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     // Complaint
@@ -153,12 +151,12 @@ exports.update = async (req, res) => {
     if (!complaint)
       return res.status(404).json({
         success: false,
-        message: "Complaint not found"
+        message: "Complaint not found",
       });
 
     let userRole;
 
-    adminUser.forEach(admin => {
+    adminUser.forEach((admin) => {
       userRole = admin.local.user_role;
     });
 
@@ -166,7 +164,7 @@ exports.update = async (req, res) => {
     if (userRole !== "super_admin") {
       return res.status(401).json({
         success: false,
-        message: "Unauthorised! Only Super Admin can Update Complaint!"
+        message: "Unauthorised! Only Super Admin can Update Complaint!",
       });
     }
 
@@ -177,38 +175,13 @@ exports.update = async (req, res) => {
       { new: true }
     );
 
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
     res.status(200).send({
       success: true,
       message: "Complaint updated!",
       data: {
         statusCode: 200,
-        complaint
-      }
+        complaint,
+      },
     });
   } catch (error) {
     res.status(422).send({
@@ -216,8 +189,8 @@ exports.update = async (req, res) => {
       message: "Error updating complaint",
       data: {
         statusCode: 422,
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 };
@@ -235,14 +208,14 @@ exports.updateComplaint = async (req, res) => {
         success: false,
         message: "Unauthorized access",
         error: {
-          statusCode: 401
-        }
+          statusCode: 401,
+        },
       });
     }
 
     let complaint = await Complaint.findOne({
       _id: req.params.complaintId,
-      storeOwner: user._id
+      storeOwner: user._id,
     });
 
     if (!complaint) {
@@ -250,8 +223,8 @@ exports.updateComplaint = async (req, res) => {
         success: false,
         message: "Could not find complaint",
         error: {
-          statusCode: 404
-        }
+          statusCode: 404,
+        },
       });
     }
 
@@ -259,35 +232,10 @@ exports.updateComplaint = async (req, res) => {
     complaint.message = message || complaint.message;
     complaint = await complaint.save();
 
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
     return res.status(200).json({
       success: true,
       message: "complaint updated",
-      data: complaint
+      data: complaint,
     });
   } catch (error) {
     errorHandler(error, res);
@@ -304,14 +252,14 @@ exports.deleteComplaint = async (req, res) => {
         success: false,
         message: "Unauthorized access",
         error: {
-          statusCode: 401
-        }
+          statusCode: 401,
+        },
       });
     }
 
     let complaint = await Complaint.findOne({
       _id: req.params.complaintId,
-      storeOwner: user._id
+      storeOwner: user._id,
     });
 
     if (!complaint) {
@@ -319,42 +267,17 @@ exports.deleteComplaint = async (req, res) => {
         success: false,
         message: "Could not find complaint",
         error: {
-          statusCode: 404
-        }
+          statusCode: 404,
+        },
       });
     }
 
     complaint = await complaint.remove();
 
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
     return res.status(200).json({
       success: true,
       message: "complaint deleted",
-      data: complaint
+      data: complaint,
     });
   } catch (error) {
     errorHandler(error, res);
@@ -370,7 +293,7 @@ exports.deleteOne = async (req, res) => {
 
     // Super admin user role
     const adminUser = await StoreOwner.find({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     // Complaint
@@ -380,56 +303,31 @@ exports.deleteOne = async (req, res) => {
     if (!complaint)
       return res.status(404).json({
         success: false,
-        message: "Complaint not found"
+        message: "Complaint not found",
       });
 
     let userRole;
 
-    adminUser.forEach(admin => {
+    adminUser.forEach((admin) => {
       userRole = admin.local.user_role;
     });
 
     if (userRole !== "super_admin") {
       return res.status(401).json({
         success: false,
-        message: "Unauthorised! Only Super Admin can Delete Complaint!"
+        message: "Unauthorised! Only Super Admin can Delete Complaint!",
       });
     }
 
     await Complaint.findByIdAndRemove(complaint);
 
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
     res.status(200).send({
       success: true,
       message: "Complaint successfully deleted",
       data: {
-        statusCode: 200
+        statusCode: 200,
         // complaint
-      }
+      },
     });
   } catch (error) {
     res.status(500).send({
@@ -437,8 +335,8 @@ exports.deleteOne = async (req, res) => {
       message: "Error deleting complaint",
       data: {
         statusCode: 500,
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 };
@@ -453,7 +351,7 @@ exports.newComplaint = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       message: "fields must be at least 11 characters long",
-      errors: errors.array()
+      errors: errors.array(),
     });
   }
 
@@ -463,7 +361,7 @@ exports.newComplaint = async (req, res) => {
   try {
     // Get Store Owner Id from the URL Parameter
     let storeOwner = await StoreOwner.findOne({
-      _id: req.user.store_admin_ref
+      _id: req.user.store_admin_ref,
     });
 
     // console.log(storeOwner.local);
@@ -482,7 +380,7 @@ exports.newComplaint = async (req, res) => {
       subject,
       message,
       storeOwner: storeOwner._id,
-      storeOwnerPhone: storeOwner.identifier
+      storeOwnerPhone: storeOwner.identifier,
     });
 
     // urlStoreOwner.complaints.push(newComplaint);
@@ -490,38 +388,13 @@ exports.newComplaint = async (req, res) => {
     // const complaint = await urlStoreOwner.save();
     const complaint = await newComplaint.save();
 
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
     res.json({
       success: true,
       message: "Complaint successfully created!",
       data: {
         statusCode: 200,
-        complaint
-      }
+        complaint,
+      },
     });
   } catch (err) {
     console.error(err.message);
@@ -530,8 +403,8 @@ exports.newComplaint = async (req, res) => {
       message: "Server Error!",
       data: {
         statusCode: 500,
-        error: err.message
-      }
+        error: err.message,
+      },
     });
   }
 };
@@ -543,12 +416,12 @@ exports.getAllComplaintsInDB = async (req, res) => {
   try {
     // User who logs in
     const adminUser = await StoreOwner.find({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
     console.log(adminUser);
     let userRole;
 
-    adminUser.forEach(admin => {
+    adminUser.forEach((admin) => {
       userRole = admin.local.user_role;
     });
 
@@ -556,7 +429,7 @@ exports.getAllComplaintsInDB = async (req, res) => {
     if (userRole !== "super_admin") {
       return res.status(401).json({
         success: false,
-        message: "Unauthorised! Only Super Admin can get all Complaint!"
+        message: "Unauthorised! Only Super Admin can get all Complaint!",
       });
     }
 
@@ -567,7 +440,7 @@ exports.getAllComplaintsInDB = async (req, res) => {
     if (!complaints)
       return res.status(404).json({
         success: false,
-        message: "Complaint not found"
+        message: "Complaint not found",
       });
 
     res.status(200).json({
@@ -576,18 +449,18 @@ exports.getAllComplaintsInDB = async (req, res) => {
       data: complaints,
       complaintCounts: {
         new: await Complaint.countDocuments({
-          status: "New"
+          status: "New",
         }),
         pending: await Complaint.countDocuments({
-          status: "Pending"
+          status: "Pending",
         }),
         resolved: await Complaint.countDocuments({
-          status: "Resolved"
+          status: "Resolved",
         }),
         closed: await Complaint.countDocuments({
-          status: "Closed"
-        })
-      }
+          status: "Closed",
+        }),
+      },
     });
   } catch (err) {
     return res.status(500).json({
@@ -595,8 +468,8 @@ exports.getAllComplaintsInDB = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: err.message
-      }
+        message: err.message,
+      },
     });
   }
 };
@@ -619,7 +492,7 @@ exports.createFeedbacks = async (req, res) => {
     const { complaintId } = req.params;
 
     let storeOwner = await StoreOwner.findOne({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     // Complaint Schema
@@ -633,8 +506,8 @@ exports.createFeedbacks = async (req, res) => {
         message: "Complaint not found!",
         data: {
           statusCode: 404,
-          error: error.message
-        }
+          error: error.message,
+        },
       });
     }
 
@@ -645,44 +518,19 @@ exports.createFeedbacks = async (req, res) => {
       user: storeOwner._id,
       userPhone: req.user.phone_number,
       userRole: storeOwner.local.user_role,
-      messages: req.body.messages
+      messages: req.body.messages,
     });
 
     let feedbacks = await complaint.save();
 
     // Return response
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
     res.status(201).json({
       success: true,
       message: "Feedback created!",
       data: {
         statusCode: 201,
-        feedbacks: feedbacks.feedbacks
-      }
+        feedbacks: feedbacks.feedbacks,
+      },
     });
   } catch (err) {
     return res.status(500).json({
@@ -690,8 +538,8 @@ exports.createFeedbacks = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: err.message
-      }
+        message: err.message,
+      },
     });
   }
 };
@@ -704,7 +552,7 @@ exports.getFeedbacks = async (req, res) => {
     const { complaintId } = req.params;
 
     let userAdmin = await StoreOwner.findOne({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     const complaints = await Complaint.findById(complaintId);
@@ -722,14 +570,26 @@ exports.getFeedbacks = async (req, res) => {
 
     let feedbacks = complaints.feedbacks;
 
+    let responseFeedbacks = []
+
+    for(let index = 0;  index < feedbacks.length; index++) {
+      const user = await StoreOwner.findById(feedbacks[index].user)
+      if(user) {
+        let local = JSON.parse(JSON.stringify(feedbacks[index]))
+        responseFeedbacks.push({...local, userName: user.local.first_name})
+      } else {
+        responseFeedbacks.push(feedbacks[index])
+      }
+    }
+
     // Send response
     res.status(200).json({
       success: true,
       message: "All Feedbacks for this Complaint!",
       data: {
         statusCode: 200,
-        feedbacks
-      }
+        feedbacks: responseFeedbacks,
+      },
     });
   } catch (err) {
     return res.status(500).json({
@@ -737,8 +597,8 @@ exports.getFeedbacks = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: err.message
-      }
+        message: err.message,
+      },
     });
   }
 };
@@ -751,7 +611,7 @@ exports.getFeedback = async (req, res) => {
     const { complaintId, feedbackId } = req.params;
 
     let userAdmin = await StoreOwner.findOne({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     const complaints = await Complaint.findById(complaintId);
@@ -759,7 +619,7 @@ exports.getFeedback = async (req, res) => {
     let feedbacks = complaints.feedbacks;
 
     // Loop and check feedbacks by id and return
-    feedbacks.forEach(feedback => {
+    feedbacks.forEach((feedback) => {
       if (feedback._id == feedbackId) {
         // feedbackGotten = feedback;
 
@@ -768,8 +628,8 @@ exports.getFeedback = async (req, res) => {
           message: "Single feedback gotten!",
           data: {
             statusCode: 200,
-            feedback
-          }
+            feedback,
+          },
         });
       }
 
@@ -778,8 +638,8 @@ exports.getFeedback = async (req, res) => {
           success: false,
           error: {
             statusCode: 404,
-            message: `No feedback of id ${feedbackId} found!`
-          }
+            message: `No feedback of id ${feedbackId} found!`,
+          },
         });
       }
     });
@@ -789,8 +649,8 @@ exports.getFeedback = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: err.message
-      }
+        message: err.message,
+      },
     });
   }
 };
@@ -803,7 +663,7 @@ exports.deleteFeedback = async (req, res) => {
     const { complaintId, feedbackId } = req.params;
 
     let userAdmin = await StoreOwner.findOne({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     const complaints = await Complaint.findById(complaintId);
@@ -813,7 +673,7 @@ exports.deleteFeedback = async (req, res) => {
       return res.status(401).json({
         success: false,
         message:
-          "Unauthorised admin user! Only a Super Admin can delete feedbacks!"
+          "Unauthorised admin user! Only a Super Admin can delete feedbacks!",
       });
     }
 
@@ -827,39 +687,14 @@ exports.deleteFeedback = async (req, res) => {
 
     // Save to DB
     await complaints.save();
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
 
     res.status(200).json({
       success: true,
       message: "Feedback deleted successfully",
       data: {
         statusCode: 200,
-        feedbacks
-      }
+        feedbacks,
+      },
     });
   } catch (err) {
     return res.status(500).json({
@@ -867,8 +702,8 @@ exports.deleteFeedback = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: err.message
-      }
+        message: err.message,
+      },
     });
   }
 };
@@ -881,7 +716,7 @@ exports.deleteAllFeedbacks = async (req, res) => {
     const { complaintId, feedbackId } = req.params;
 
     let userAdmin = await StoreOwner.findOne({
-      identifier: req.user.phone_number
+      identifier: req.user.phone_number,
     });
 
     const complaints = await Complaint.findById(complaintId);
@@ -891,7 +726,7 @@ exports.deleteAllFeedbacks = async (req, res) => {
       return res.status(401).json({
         success: false,
         message:
-          "Unauthorised admin user! Only a Super Admin can delete feedbacks!"
+          "Unauthorised admin user! Only a Super Admin can delete feedbacks!",
       });
     }
 
@@ -902,39 +737,14 @@ exports.deleteAllFeedbacks = async (req, res) => {
 
     // Save to DB
     await complaints.save();
-    await onFinished(res, async (err, res) => {
-      /*console.log(req.method, req.url, "HTTP/" + req.httpVersion);
-          for (var name in req.headers)
-            console.log(name + ":", req.headers[name]);*/
-      const { method, originalUrl, httpVersion, headers, body, params } = req;
-      /*console.log({
-            method,
-            originalUrl,
-            httpVersion,
-            headers,
-            body,
-            params
-          });*/
-      await Activity.create({
-        creator_ref: req.user._id,
-        method,
-        originalUrl,
-        httpVersion,
-        headers,
-        body,
-        params
-      });
-      // const activity = await Activity.findOne({"body.phone_number": "2348136814497"});
-      // console.log(activity);
-    });
 
     res.status(200).json({
       success: true,
       message: "All feedback deleted successfully",
       data: {
         statusCode: 200,
-        feedbacks
-      }
+        feedbacks,
+      },
     });
   } catch (err) {
     return res.status(500).json({
@@ -942,8 +752,8 @@ exports.deleteAllFeedbacks = async (req, res) => {
       message: "Internal server error",
       error: {
         statusCode: 500,
-        message: err.message
-      }
+        message: err.message,
+      },
     });
   }
 };
