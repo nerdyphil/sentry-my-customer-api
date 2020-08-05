@@ -10,15 +10,9 @@ exports.retrieve = async (req, res) => {
   try {
     const identifier = req.user.phone_number;
     let activity;
-    if (req.user.user_role == "store_assistant") {
-      activity = await Activity.find({
-        store_assistant_ref: req.user._id
-      }).sort({ createdAt: 1 });
-    } else {
-      activity = await Activity.find({
-        store_admin_ref: req.user._id
-      }).sort({ createdAt: 1 });
-    }
+    activity = await Activity.find({
+      creator_ref: req.user._id
+    }).sort({ createdAt: 1 });
     if (!activity) {
       return res.status(404).json({
         success: false,
