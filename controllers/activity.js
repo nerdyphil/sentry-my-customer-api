@@ -34,11 +34,11 @@ exports.retrieve = async (req, res) => {
     if (req.user.user_role == "store_assistant") {
       activity = await Activity.find({
         store_assistant_ref: req.user._id
-      }).sort({ time: 1 });
+      }).sort({ createdAt: 1 });
     } else {
       activity = await Activity.find({
         store_admin_ref: req.user._id
-      }).sort({ time: 1 });
+      }).sort({ createdAt: 1 });
     }
     if (!activity) {
       return res.status(404).json({
@@ -59,29 +59,3 @@ exports.retrieve = async (req, res) => {
     errorHandler(error, res);
   }
 };
-
-exports.populate = async (req, res) => {
-  try {
-    const { activity } = req.body;
-    if (activity) {
-      await Activity.insertMany(activity);
-      const all = await Activity.find({
-        $or: [
-          {
-            store_assistant_ref: req.user._id
-          },
-          {
-            store_admin_ref: req.user._id
-          }
-        ]
-      }).sort({ time: 1 });
-      return res.status(200).json({
-        success: true,
-        message: "Logs synced successfully.",
-        data: all
-      });
-    }
-  } catch (error) {
-    return errorHandler(error, res);
-  }
-}
