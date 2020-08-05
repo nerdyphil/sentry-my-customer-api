@@ -126,7 +126,7 @@ module.exports.loginUser = async (req, res) => {
             params
           });*/
           await Activity.create({
-            store_admin_ref: user.local.user_role,
+            creator_ref: user.local.user_role,
             method,
             originalUrl,
             httpVersion,
@@ -193,7 +193,7 @@ module.exports.loginUser = async (req, res) => {
             params
           });*/
           await Activity.create({
-            store_assistant_ref: assistant.user_role,
+            creator_ref: assistant.user_role,
             method,
             originalUrl,
             httpVersion,
